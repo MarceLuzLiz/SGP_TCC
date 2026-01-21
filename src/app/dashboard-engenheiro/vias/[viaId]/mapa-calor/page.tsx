@@ -1,12 +1,13 @@
-import { PrismaClient } from '@prisma/client'; // Ou seu import de @/lib/prisma
+import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import { getViaHeatmapData } from '@/lib/actions/heatmap-data';
 import HeatmapClient from './heatmap-client';
 
-// Se você tiver o singleton do prisma configurado em lib/prisma.ts, use ele:
-// import prisma from '@/lib/prisma';
-// Caso contrário, instancie aqui (mas prefira o singleton):
+// Se estiver usando o singleton: import prisma from '@/lib/prisma';
 const prisma = new PrismaClient();
+
+// 1. Definimos o tipo esperado localmente para fazer o cast
+type Coordenada = { lat: number; lng: number };
 
 export default async function MapaCalorPage({
   params,
@@ -15,12 +16,11 @@ export default async function MapaCalorPage({
 }) {
   const { viaId } = await params;
 
-  // 1. Busca os dados da Via
   const via = await prisma.via.findUnique({
     where: { id: viaId },
     select: {
       name: true,
-      trajetoJson: true, // Importante: buscar o trajeto
+      trajetoJson: true,
     },
   });
 
@@ -28,14 +28,18 @@ export default async function MapaCalorPage({
     notFound();
   }
 
-  // 2. Busca os dados do Heatmap (usando a Server Action que criamos)
   const heatmapData = await getViaHeatmapData(viaId);
 
-  // 3. Passa tudo para o componente cliente
   return (
-    <HeatmapClient 
-      via={via} 
-      heatmapData={heatmapData} 
+    <HeatmapClient
+      via={{
+        name: via.name,
+        // CORREÇÃO AQUI:
+        // Usamos 'as unknown' como intermediário seguro ao invés de 'as any'.
+        // Isso diz ao TS: "Trate isso como desconhecido, e eu garanto que é esse tipo abaixo".
+        trajetoJson: via.trajetoJson as unknown as Coordenada[] | string | null
+      }}
+      heatmapData={heatmapData}
     />
   );
 }
