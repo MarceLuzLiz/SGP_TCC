@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Trecho" ADD COLUMN     "cor" TEXT NOT NULL DEFAULT '#0000FF';

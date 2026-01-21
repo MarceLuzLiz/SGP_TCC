@@ -1,0 +1,21 @@
+﻿Classificação Específica;Código (DNIT);Mapeamento para Cálculo do IGG (Tipo);Fator de ponderação
+Fissuras;FI;Tipo 1;0,2
+Trinca Isolada Transversal Curta;TTC;Tipo 1;0,2
+Trinca Isolada Transversal Longa;TTL;Tipo 1;0,2
+Trinca Isolada Longitudinal Curta;TLC;Tipo 1;0,2
+Trinca Isolada Longitudinal Longa;TLL;Tipo 1;0,2
+Trinca Isolada por Retração Térmica;TRR;Tipo 1;0,2
+"Trinca Interligada ""Jacaré"" (sem erosão acentuada)";J;Tipo 2;0,5
+"Trinca Interligada ""Bloco"" (sem erosão acentuada)";JE;Tipo 3;0,8
+"Trinca Interligada ""Jacaré"" (com erosão acentuada)";TB;Tipo 2;0,5
+"Trinca Interligada ""Bloco"" (com erosão acentuada)";TBE;Tipo 3;0,8
+Afundamento Plástico Local;ALP;Tipo 4;0,9
+Afundamento Plástico na Trilha de Roda;ATP;Tipo 4;0,9
+Afundamento por Consolidação Local;ALC;Tipo 4;0,9
+Afundamento por Consolidação na Trilha de Roda;ATC;Tipo 4;0,9
+Ondulação ou Corrugação;O;Tipo 5;1
+"""Panelas"" ou buracos";P;Tipo 5;1
+Escorregamento do revestimento;E;Tipo 5;1
+Exsudação do ligante;EX;Tipo 6;0,5
+Desgaste acentuado na superfície;D;Tipo 7;0,3
+Remendos (Superficiais ou Profundos);R;Tipo 8;0,6

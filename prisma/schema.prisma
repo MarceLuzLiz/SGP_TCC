@@ -1,0 +1,263 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS para padronizar os tipos
+enum Role {
+  FISCAL
+  ENGENHEIRO
+  ADMIN
+}
+
+enum RelatorioTipo {
+  RFT
+  RDS
+}
+
+enum StatusAprovacao {
+  PENDENTE
+  APROVADO
+  REPROVADO
+  CORRIGIDO
+  CANCELAMENTO_PENDENTE
+}
+
+enum FotoTipo {
+  RFT
+  RDS
+}
+
+enum TipoRelatorioVia {
+  RFT_VIA
+  RDS_VIA
+  GERENCIAL_VIA
+}
+
+// MODELOS / TABELAS
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(FISCAL)
+  isSuspended Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedVias UserViaAssignment[] // Relação com as vias atribuídas
+  vistorias    Vistoria[]
+  fotos        Foto[]
+  relatorios   Relatorio[]
+  approvedRelatorios Relatorio[] @relation("Aprovador")
+  relatoriosViaCriados RelatorioVia[] @relation("CriadorRelatorioVia")
+}
+
+model Via {
+  id         String @id @default(uuid())
+  name       String
+  bairro     String
+  municipio  String
+  estado     String
+  extensaoKm Float
+
+  // --- ADIÇÃO PROPOSTA ---
+  // Armazena o traçado da via como um array de coordenadas.
+  // Ex: [{ lat: -1.23, lng: -48.45 }, { lat: -1.24, lng: -48.46 }, ...]
+  trajetoJson Json?
+
+  estacas String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedUsers UserViaAssignment[] // Relação com os usuários atribuídos
+  trechos       Trecho[]
+
+  relatoriosVia RelatorioVia[]
+}
+
+// Tabela de ligação para o relacionamento Muitos-para-Muitos entre User e Via
+model UserViaAssignment {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  via    Via    @relation(fields: [viaId], references: [id])
+  viaId  String
+
+  @@id([userId, viaId]) // Chave primária composta
+}
+
+model Trecho {
+  id        String @id @default(uuid())
+  nome      String // 
+  kmInicial Float // NOVO
+  kmFinal   Float // NOVO
+
+  cor String @default("#0000FF")
+
+  estacas String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  via   Via    @relation(fields: [viaId], references: [id])
+  viaId String
+
+  vistorias  Vistoria[]
+  fotos      Foto[]
+  relatorios Relatorio[]
+}
+
+model Vistoria {
+  id           String   @id @default(uuid())
+  dataVistoria DateTime
+  motivo       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  trecho   Trecho @relation(fields: [trechoId], references: [id])
+  trechoId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  relatorios Relatorio[]
+  fotos      Foto[]
+}
+
+model Patologia {
+  id                      String @id @default(uuid())
+  classificacaoEspecifica String
+  codigoDnit              String @unique
+  mapeamentoIgg           String
+  fatorPonderacao         Float
+
+  fotos Foto[]
+}
+
+model RdsOcorrencia {
+  id         String @id @default(uuid())
+  categoria  String // Ex: "Equipe", "Condições", "Serviços"
+  ocorrencia String // Ex: "Início da mobilização", "Pista molhada"
+
+  fotos Foto[]
+}
+
+model Foto {
+  id             String   @id @default(uuid())
+  imageUrl       String
+  latitude       Float
+  longitude      Float
+  dataCaptura    DateTime
+  descricao      String?
+  grauSeveridade String? // Apenas para RFT
+  extensaoM      Float? // Apenas para RFT
+  larguraM       Float? // Apenas para RFT
+
+  estaca String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tipo FotoTipo // RFT ou RDS
+
+  vistoria   Vistoria @relation(fields: [vistoriaId], references: [id])
+  vistoriaId String
+
+  trecho   Trecho @relation(fields: [trechoId], references: [id])
+  trechoId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Relação flexível: Uma foto terá um dos dois Ids, nunca ambos.
+  patologia   Patologia? @relation(fields: [patologiaId], references: [id])
+  patologiaId String?
+
+  rdsOcorrencia   RdsOcorrencia? @relation(fields: [rdsOcorrenciaId], references: [id])
+  rdsOcorrenciaId String?
+
+  previousFoto   Foto?           @relation("EvolucaoPatologia", fields: [previousFotoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  previousFotoId String?         @unique
+  nextFoto       Foto?           @relation("EvolucaoPatologia")
+  relatorios     RelatorioFoto[]
+}
+
+model Relatorio {
+  id               String          @id @default(uuid())
+  tipo             RelatorioTipo
+  statusAprovacao  StatusAprovacao @default(PENDENTE)
+  dadosJson        String? // Armazena dados flexíveis (clima, horários, etc.) como um JSON
+  motivoReprovacao String?
+  motivoCancelamento String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  trecho   Trecho @relation(fields: [trechoId], references: [id])
+  trechoId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  approver   User?   @relation("Aprovador", fields: [approverId], references: [id])
+  approverId String?
+
+  vistoria   Vistoria @relation(fields: [vistoriaId], references: [id])
+  vistoriaId String
+
+  fotos RelatorioFoto[] // Relação com as fotos deste relatório
+
+  itensConsolidados RelatorioViaItem[]
+}
+
+// Tabela de ligação para o relacionamento Muitos-para-Muitos entre Relatorio e Foto
+model RelatorioFoto {
+  relatorio   Relatorio @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  relatorioId String
+  foto        Foto      @relation(fields: [fotoId], references: [id])
+  fotoId      String
+
+  @@id([relatorioId, fotoId])
+}
+
+model RelatorioVia {
+  id             String           @id @default(uuid())
+  tipo           TipoRelatorioVia
+  titulo         String // Ex: "RFT Consolidado - Outubro/2025"
+  dataReferencia DateTime // A data escolhida pelo usuário
+
+  // Para o relatório Gerencial, guardaremos as tabelas calculadas aqui
+  dadosJson String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  via   Via    @relation(fields: [viaId], references: [id])
+  viaId String
+
+  // Itens que compõem este relatório (Vários RFTs ou RDSs de trechos)
+  itens RelatorioViaItem[]
+
+  criadoPor   User   @relation("CriadorRelatorioVia", fields: [criadorId], references: [id])
+  criadorId   String
+}
+
+model RelatorioViaItem {
+  id String @id @default(uuid())
+
+  relatorioVia   RelatorioVia @relation(fields: [relatorioViaId], references: [id], onDelete: Cascade)
+  relatorioViaId String
+
+  // O relatório original do trecho (fonte)
+  relatorioOrigem   Relatorio @relation(fields: [relatorioOrigemId], references: [id])
+  relatorioOrigemId String
+
+  @@unique([relatorioViaId, relatorioOrigemId]) // Evita duplicatas
+}
