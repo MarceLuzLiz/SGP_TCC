@@ -1,9 +1,5 @@
 'use server';
 import prisma from '@/lib/prisma';
-
-import { TipoRelatorioVia } from '@prisma/client';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getIggDataForVistoria } from '@/lib/utils/igg';
 
 // --- 1. DADOS PARA RFT/RDS INDIVIDUAL ---

@@ -158,7 +158,7 @@ export function ViaDetailMap({
       }
       setIsMapReady(false);
     };
-  }, [viaId]);
+  }, [viaId, trajeto]);
 
   // 2. Renderizar camadas ESTÁTICAS (Polylines de trechos, pendente, estacas e fotos)
   useEffect(() => {

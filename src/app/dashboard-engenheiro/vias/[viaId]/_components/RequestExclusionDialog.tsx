@@ -96,7 +96,7 @@ export function RequestExclusionDialog({
               Solicitar Exclusão de {isTrecho ? 'Trecho' : 'Via'}
             </DialogTitle>
             <DialogDescription>
-              O item <strong>"{name}"</strong> entrará em estado <strong>Suspenso</strong> para revisão e aprovação final do <strong>Administrador</strong>. Nenhum dado histórico será apagado imediatamente.
+              O item <strong>&quot;{name}&quot;</strong> entrará em estado <strong>Suspenso</strong> para revisão e aprovação final do <strong>Administrador</strong>. Nenhum dado histórico será apagado imediatamente.
             </DialogDescription>
           </DialogHeader>
 

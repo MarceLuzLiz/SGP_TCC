@@ -27,6 +27,7 @@ export const HeatmapPDF = ({ viaNome, mapImageBase64, dataGeracao }: HeatmapPDFP
 
       <View style={styles.mapContainer}>
         {/* Insere a imagem capturada */}
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
         <Image src={mapImageBase64} style={styles.mapImage} />
       </View>
 

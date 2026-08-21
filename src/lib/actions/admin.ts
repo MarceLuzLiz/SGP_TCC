@@ -39,7 +39,7 @@ export async function suspendUser(userId: string): Promise<ActionResult> {
     });
     revalidatePath('/dashboard-admin/usuarios');
     return { success: 'Usuário suspenso com sucesso.' };
-  } catch (error) {
+  } catch {
     return { error: 'Falha ao suspender usuário.' };
   }
 }
@@ -61,7 +61,7 @@ export async function reactivateUser(userId: string): Promise<ActionResult> {
     });
     revalidatePath('/dashboard-admin/usuarios');
     return { success: 'Usuário reativado com sucesso.' };
-  } catch (error) {
+  } catch {
     return { error: 'Falha ao reativar usuário.' };
   }
 }

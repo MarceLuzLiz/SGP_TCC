@@ -22,7 +22,7 @@ function NavigationProgressBarContent() {
       }, 300);
       return () => clearTimeout(finishTimer);
     }
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, isNavigating]);
 
   // Interceptar cliques em links internos para disparar a animação instantaneamente
   useEffect(() => {

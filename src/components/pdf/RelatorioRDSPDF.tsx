@@ -130,7 +130,6 @@ const chunkArray = <T,>(array: T[], size: number): T[][] => {
 
 export const RelatorioRDSPDF = ({
   titulo,
-  tipo,
   trechoNome,
   viaNome,
   dataVistoria,

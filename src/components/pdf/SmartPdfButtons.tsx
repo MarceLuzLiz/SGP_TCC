@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { toast } from 'sonner';
 import { getLogoUrl } from '@/lib/constants';

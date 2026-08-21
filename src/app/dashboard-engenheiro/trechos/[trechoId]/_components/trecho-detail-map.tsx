@@ -110,7 +110,7 @@ export function TrechoDetailMap({
       }
       setIsMapReady(false);
     };
-  }, [kmInicial, kmFinal]);
+  }, [kmInicial, kmFinal, trechoPath]);
 
   // Atualizar camadas (Polyline do trecho, estacas e fotos)
   useEffect(() => {
