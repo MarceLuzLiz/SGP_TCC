@@ -1,6 +1,6 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard-engenheiro/rft/[relatorioId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -10,8 +10,6 @@ import { ApprovalActions } from '@/app/dashboard-engenheiro/equipe/_components/a
 import { ReproveFeedback } from './_components/ReproveFeedback'; // (Criaremos a seguir)
 import { DownloadPdfButton } from '@/components/pdf/DownloadPdfButton';
 
-
-const prisma = new PrismaClient();
 
 async function getRelatorioDetails(relatorioId: string) {
   return await prisma.relatorio.findUnique({

@@ -1,10 +1,9 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { PhotoGrid } from './_components/PhotoGrid';
-
-const prisma = new PrismaClient();
 
 async function getGalleryData(
   trechoId: string, 

@@ -1,14 +1,12 @@
+import prisma from '@/lib/prisma';
 import { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export const authOptions: AuthOptions = {
   session: {
     strategy: 'jwt',
-    maxAge: 60 * 60, 
+    maxAge: 8 * 60 * 60, // 8 horas de sessão ativa durante o expediente de trabalho
   },
   providers: [
     CredentialsProvider({
@@ -32,7 +30,7 @@ export const authOptions: AuthOptions = {
 
         if (user.isSuspended) {
           console.log(`Tentativa de login bloqueada: Usuário ${user.email} está suspenso.`);
-          return null; // Nega a autorização
+          return null;
         }
 
         const isPasswordValid = await bcrypt.compare(
@@ -56,7 +54,6 @@ export const authOptions: AuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        
         token.id = user.id;
         // @ts-expect-error Corrigido
         token.role = user.role;

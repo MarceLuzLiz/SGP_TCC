@@ -1,4 +1,6 @@
-import { Prisma, PrismaClient, TipoRelatorioVia } from '@prisma/client'; // 1. Importar Prisma
+import prisma from '@/lib/prisma';
+import { Prisma, TipoRelatorioVia } from '@prisma/client';
+// 1. Importar Prisma
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +9,6 @@ import { notFound } from 'next/navigation';
 import { RelatorioViaFiltro } from '../_components/RelatorioViaFiltro';
 import { DeleteRelatorioViaButton } from '../_components/DeleteRelatorioViaButton';
 import { DownloadConsolidadoViaButton } from '@/components/pdf/SmartPdfButtons';
-
-const prisma = new PrismaClient();
 
 export default async function RdsViaListPage({
   params,

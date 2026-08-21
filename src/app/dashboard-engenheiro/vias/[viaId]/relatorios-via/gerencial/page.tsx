@@ -1,4 +1,5 @@
-import { Prisma, PrismaClient, TipoRelatorioVia } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Prisma, TipoRelatorioVia } from '@prisma/client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,6 @@ import { notFound } from 'next/navigation';
 import { RelatorioViaFiltro } from '../_components/RelatorioViaFiltro';
 import { DeleteRelatorioViaButton } from '../_components/DeleteRelatorioViaButton';
 import { DownloadGerencialButton } from '@/components/pdf/SmartPdfButtons';
-
-const prisma = new PrismaClient();
 
 export default async function GerencialViaListPage({
   params,

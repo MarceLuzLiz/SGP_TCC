@@ -1,11 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import { getViaHeatmapData } from '@/lib/actions/heatmap-data';
 import HeatmapClient from './heatmap-client';
 
 // Se estiver usando o singleton: import prisma from '@/lib/prisma';
-const prisma = new PrismaClient();
-
 // 1. Definimos o tipo esperado localmente para fazer o cast
 type Coordenada = { lat: number; lng: number };
 

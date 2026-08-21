@@ -1,12 +1,10 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/vias/[viaId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import { ChevronRight, Construction } from 'lucide-react';
 import { parseStakeToMeters } from '@/lib/formatters';
 import { formatKmToStakes } from '@/lib/formatters';
-
-const prisma = new PrismaClient();
 
 async function getViaDetails(viaId: string) {
   const via = await prisma.via.findUnique({

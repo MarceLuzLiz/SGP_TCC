@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AppProviders } from "@/components/providers/AppProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | SGP', // Nas páginas internas ficará: "Dashboard | SGP"
-    default: 'SGP - Sistema de Gerenciamento', // Na home ou login ficará assim
+    template: '%s | SGP',
+    default: 'SGP - Sistema de Gerenciamento de Pavimentos',
   },
   description: "Sistema de Gerenciamento de Pavimentos",
 };
@@ -27,10 +28,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

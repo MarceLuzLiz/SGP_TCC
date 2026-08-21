@@ -1,11 +1,9 @@
+import prisma from '@/lib/prisma';
 // src/app/api/auth/mobile-login/route.ts
 
-import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {

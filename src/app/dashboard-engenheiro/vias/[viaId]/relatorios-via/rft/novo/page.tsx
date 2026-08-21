@@ -1,8 +1,7 @@
-import { PrismaClient, StatusAprovacao, RelatorioTipo } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { StatusAprovacao, RelatorioTipo } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import { CreateConsolidadoForm } from './_components/create-consolidado-form'; // Criaremos a seguir
-
-const prisma = new PrismaClient();
 
 // Busca os dados necessários para o formulário
 async function getDadosParaFormulario(viaId: string) {

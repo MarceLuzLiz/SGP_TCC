@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { RDSCreator } from '../_components/RDSCreator';
-
-const prisma = new PrismaClient();
 
 async function getCreationData(trechoId: string) {
   return await prisma.trecho.findUnique({

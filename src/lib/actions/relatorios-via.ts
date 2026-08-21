@@ -1,12 +1,11 @@
 'use server';
+import prisma from '@/lib/prisma';
 
-import { PrismaClient, TipoRelatorioVia } from '@prisma/client';
+import { TipoRelatorioVia } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { gerarDadosGerenciais } from '@/lib/utils/gerencial'; // A calculadora
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 // Ação 1: APENAS CALCULA (para a pré-visualização)
 export async function fetchDadosGerenciaisAction(viaId: string, dataRefStr: string) {

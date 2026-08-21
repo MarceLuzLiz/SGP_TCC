@@ -1,27 +1,21 @@
 'use client';
 
-import {
-  GoogleMap,
-  useJsApiLoader,
-  Polyline,
-  MarkerF,
-} from '@react-google-maps/api';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Foto } from '@prisma/client';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Loader2, Milestone, Map as MapIcon } from 'lucide-react';
+import { Milestone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Coordenada,
+  findPathBetweenKms,
+  calculateStakes,
+} from '@/lib/geoUtils';
 
-// --- DEFINIÇÕES GLOBAIS ---
 const containerStyle = {
   width: '100%',
   height: '400px',
   borderTopLeftRadius: '0.5rem',
   borderTopRightRadius: '0.5rem',
 };
-
-// Adicione 'visualization' aqui para bater com a configuração do Mapa de Calor
-const libraries: ('geometry' | 'visualization')[] = ['geometry', 'visualization'];
-type Coordenada = { lat: number; lng: number };
 
 interface TrechoDetailMapProps {
   trajeto: Coordenada[] | null;
@@ -32,258 +26,177 @@ interface TrechoDetailMapProps {
   intervalo?: number;
 }
 
-interface PontoEstaca {
-  coord: Coordenada;
-  numero: number;
-  label: string;
-}
-
-// --- FUNÇÕES DE GEOMETRIA ---
-
-/**
- * Encontra o traçado (array de Coordenadas) ENTRE dois Kms.
- */
-function findPathBetweenKm(
-  trajeto: Coordenada[],
-  kmStart: number,
-  kmEnd: number,
-): Coordenada[] {
-  if (!window.google?.maps?.geometry || trajeto.length === 0) return [];
-  const geometry = window.google.maps.geometry.spherical;
-  const metersStart = kmStart * 1000;
-  const metersEnd = kmEnd * 1000;
-  let accumulatedMeters = 0;
-  const trechoPath: Coordenada[] = [];
-  let started = false;
-
-  for (let i = 0; i < trajeto.length - 1; i++) {
-    const segmentStart = trajeto[i];
-    const segmentEnd = trajeto[i + 1];
-    const segmentStartLatLng = new google.maps.LatLng(segmentStart);
-    const segmentEndLatLng = new google.maps.LatLng(segmentEnd);
-    const segmentLength = geometry.computeLength([
-      segmentStartLatLng,
-      segmentEndLatLng,
-    ]);
-    const segmentEndMeters = accumulatedMeters + segmentLength;
-
-    if (!started && segmentEndMeters >= metersStart) {
-      started = true;
-      const distanceIntoSegment = metersStart - accumulatedMeters;
-      const fraction = distanceIntoSegment / segmentLength;
-      const startPoint = geometry.interpolate(
-        segmentStartLatLng,
-        segmentEndLatLng,
-        Math.max(0, fraction),
-      );
-      trechoPath.push({ lat: startPoint.lat(), lng: startPoint.lng() });
-
-      if (segmentEndMeters >= metersEnd) {
-        const distanceIntoSegmentEnd = metersEnd - accumulatedMeters;
-        const fractionEnd = distanceIntoSegmentEnd / segmentLength;
-        const endPoint = geometry.interpolate(
-          segmentStartLatLng,
-          segmentEndLatLng,
-          Math.min(1, fractionEnd),
-        );
-        trechoPath.push({ lat: endPoint.lat(), lng: endPoint.lng() });
-        break;
-      } else {
-        trechoPath.push(segmentEnd);
-      }
-    } else if (started && segmentEndMeters < metersEnd) {
-      trechoPath.push(segmentEnd);
-    } else if (started && segmentEndMeters >= metersEnd) {
-      const distanceIntoSegment = metersEnd - accumulatedMeters;
-      const fraction = distanceIntoSegment / segmentLength;
-      const endPoint = geometry.interpolate(
-        segmentStartLatLng,
-        segmentEndLatLng,
-        Math.min(1, fraction),
-      );
-      trechoPath.push({ lat: endPoint.lat(), lng: endPoint.lng() });
-      break;
-    }
-
-    accumulatedMeters += segmentLength;
-  }
-
-  return trechoPath;
-}
-
-/**
- * Gera pontos a cada 20 metros ao longo do path recortado.
- * Calcula o número da estaca baseado no Km Inicial Absoluto.
- */
-function gerarPontosEstacasGoogle(
-  path: Coordenada[],
-  kmInicialAbsoluto: number,
-  intervalo: number = 20 // <--- NOVO PARAMETRO
-): PontoEstaca[] {
-  if (!window.google?.maps?.geometry || path.length < 2) return [];
-  
-  const geometry = window.google.maps.geometry.spherical;
-  const pontos: PontoEstaca[] = [];
-  
-  const offsetInicial = kmInicialAbsoluto * 1000;
-  
-  // Define a próxima meta baseada no intervalo escolhido
-  let proximaMeta = Math.ceil(offsetInicial / intervalo) * intervalo;
-  if (proximaMeta === offsetInicial) proximaMeta += intervalo;
-
-  let distanciaPercorridaNoPath = 0;
-
-  for (let i = 0; i < path.length - 1; i++) {
-    const p1 = new google.maps.LatLng(path[i]);
-    const p2 = new google.maps.LatLng(path[i+1]);
-    const distSegmento = geometry.computeLength([p1, p2]);
-    const absDistP1 = offsetInicial + distanciaPercorridaNoPath;
-
-    while (proximaMeta <= absDistP1 + distSegmento) {
-      const distIntoSegment = proximaMeta - absDistP1;
-      const fraction = distIntoSegment / distSegmento;
-      const pEstaca = geometry.interpolate(p1, p2, fraction);
-      
-      // O número da estaca é sempre baseado na regra de 20m, 
-      // mesmo que o balão só apareça a cada 100m.
-      // Ex: Balão no metro 100 mostra "Estaca 5".
-      const numEstacaReal = Math.round(proximaMeta / 20);
-
-      pontos.push({
-        coord: { lat: pEstaca.lat(), lng: pEstaca.lng() },
-        numero: numEstacaReal,
-        label: `${numEstacaReal}`
-      });
-
-      proximaMeta += intervalo; // Avança conforme o intervalo visual configurado
-    }
-    distanciaPercorridaNoPath += distSegmento;
-  }
-
-  return pontos;
-}
-
-// --- COMPONENTE DO MAPA ---
-
 export function TrechoDetailMap({
   trajeto,
   kmInicial,
   kmFinal,
   cor,
   fotos,
-  intervalo = 20, // Padrão 20m se não for passado
 }: TrechoDetailMapProps) {
-  
-  // 1. ESTADO DE VISIBILIDADE (Começa oculto)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const layerGroupRef = useRef<any>(null);
+  const initialBoundsFittedRef = useRef<boolean>(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [showEstacas, setShowEstacas] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
-
-  const mapRef = useRef<google.maps.Map | null>(null);
-
   const trechoPath = useMemo(() => {
-    return trajeto && isLoaded
-      ? findPathBetweenKm(trajeto, kmInicial, kmFinal)
-      : [];
-  }, [trajeto, isLoaded, kmInicial, kmFinal]);
+    return trajeto ? findPathBetweenKms(trajeto, kmInicial, kmFinal) : [];
+  }, [trajeto, kmInicial, kmFinal]);
 
-  // 2. GERAÇÃO OTIMIZADA
-  // Passamos o 'intervalo' aqui
+  // Estaqueamento absoluto da via (ex: início a 88m começa em E4+8m)
   const estacasPoints = useMemo(() => {
-    return isLoaded && trechoPath.length > 0
-      ? gerarPontosEstacasGoogle(trechoPath, kmInicial, intervalo)
-      : [];
-  }, [isLoaded, trechoPath, kmInicial, intervalo]);
+    if (!trechoPath || trechoPath.length < 2) return [];
+    const startOffsetMeters = kmInicial * 1000;
+    return calculateStakes(trechoPath, 20, startOffsetMeters);
+  }, [trechoPath, kmInicial]);
 
-  const onMapLoad = useCallback(
-    (map: google.maps.Map) => {
-      mapRef.current = map;
-      if (trechoPath.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        trechoPath.forEach((coord: Coordenada) => {
-          bounds.extend(new google.maps.LatLng(coord.lat, coord.lng));
-        });
-        map.fitBounds(bounds);
+  // Inicializar o mapa
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initMap() {
+      if (!mapContainerRef.current) return;
+      const L = (await import('leaflet')).default;
+
+      if (!isMounted) return;
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
-    },
-    [trechoPath],
-  );
 
-  if (!isLoaded) {
-    return (
-      <div style={containerStyle} className="flex items-center justify-center bg-muted">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+      if ((mapContainerRef.current as any)._leaflet_id) {
+        delete (mapContainerRef.current as any)._leaflet_id;
+      }
+
+      const defaultCenter: [number, number] =
+        trechoPath && trechoPath.length > 0
+          ? [trechoPath[0].lat, trechoPath[0].lng]
+          : [-1.4558, -48.5024];
+
+      const map = L.map(mapContainerRef.current, {
+        center: defaultCenter,
+        zoom: 15,
+        zoomControl: true,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      const layerGroup = L.layerGroup().addTo(map);
+      layerGroupRef.current = layerGroup;
+      mapInstanceRef.current = map;
+      initialBoundsFittedRef.current = false;
+
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+
+      setIsMapReady(true);
+    }
+
+    initMap();
+
+    return () => {
+      isMounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      setIsMapReady(false);
+    };
+  }, [kmInicial, kmFinal]);
+
+  // Atualizar camadas (Polyline do trecho, estacas e fotos)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !layerGroupRef.current || !isMapReady) return;
+
+    async function updateLayers() {
+      const L = (await import('leaflet')).default;
+      const map = mapInstanceRef.current;
+      const lg = layerGroupRef.current;
+      lg.clearLayers();
+
+      if (trechoPath.length === 0) return;
+
+      // 1. Polyline do trecho com a cor configurada
+      const latLngs: [number, number][] = trechoPath.map((p) => [p.lat, p.lng]);
+      const polyline = L.polyline(latLngs, {
+        color: cor || '#2563eb',
+        weight: 6,
+        opacity: 0.95,
+      }).addTo(lg);
+
+      // Ajusta o zoom apenas na primeira renderização
+      if (!initialBoundsFittedRef.current) {
+        map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+        initialBoundsFittedRef.current = true;
+      }
+
+      // 2. Estacas absolutas de 20m com auto-ajuste de largura
+      if (showEstacas) {
+        estacasPoints.forEach((estaca) => {
+          const estacaIcon = L.divIcon({
+            className: 'custom-stake-wrapper',
+            html: `<div style="background:white; color:#0f172a; font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; border:1px solid #334155; box-shadow:0 1px 4px rgba(0,0,0,0.35); text-align:center; white-space:nowrap; display:inline-block; transform:translate(-50%, -50%);">${estaca.label}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          });
+          const marker = L.marker([estaca.coord.lat, estaca.coord.lng], { icon: estacaIcon }).addTo(lg);
+          marker.bindTooltip(
+            `Estaca ${estaca.label} (Distância na Via: ${(estaca.numero * 20).toFixed(0)}m)`,
+            { direction: 'top', offset: [0, -10] }
+          );
+        });
+      }
+
+      // 3. Pins das Fotos
+      fotos.forEach((foto) => {
+        const fotoIcon = L.divIcon({
+          className: 'custom-photo-pin',
+          html: `<div style="background:#ef4444; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6],
+        });
+        const marker = L.marker([foto.latitude, foto.longitude], { icon: fotoIcon }).addTo(lg);
+        marker.bindPopup(`
+          <div style="font-family: sans-serif; font-size: 12px; color: #111;">
+            <strong>Foto ${foto.tipo}</strong><br/>
+            ${foto.estaca ? `Estaca: ${foto.estaca}<br/>` : ''}
+            <small>${new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}</small>
+          </div>
+        `);
+      });
+    }
+
+    updateLayers();
+  }, [isMapReady, trechoPath, cor, showEstacas, estacasPoints, fotos]);
 
   return (
-    <div className="relative group"> {/* Wrapper relativo para posicionar o botão */}
-      
-      {/* 3. BOTÃO FLUTUANTE DE CONTROLE */}
-      <div className="absolute top-2 right-16 z-10">
+    <div className="relative">
+      <div ref={mapContainerRef} style={containerStyle} />
+
+      {/* Botão de alternância de Estacas no canto superior direito */}
+      <div className="absolute top-3 right-3 z-[400]">
         <Button
-          variant={showEstacas ? "default" : "secondary"}
+          type="button"
           size="sm"
           onClick={() => setShowEstacas(!showEstacas)}
-          className="shadow-md h-8 text-xs gap-2"
-          title={showEstacas ? "Ocultar Estacas" : "Mostrar Estacas"}
+          className={`shadow-md text-xs gap-1.5 transition-all ${
+            showEstacas
+              ? 'bg-teal-700 text-white hover:bg-teal-800'
+              : 'bg-white/95 text-slate-800 hover:bg-white border border-slate-300 dark:bg-slate-900 dark:text-slate-100'
+          }`}
         >
-          <Milestone className="h-4 w-4" />
-          {showEstacas ? "Ocultar Estacas" : "Ver Estacas"}
+          <Milestone className="h-3.5 w-3.5" />
+          {showEstacas ? 'Ocultar Estacas' : 'Ver Estacas'}
         </Button>
       </div>
-
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        onLoad={onMapLoad}
-        options={{
-          mapTypeControl: false,
-          streetViewControl: false,
-          zoomControl: true,
-        }}
-      >
-        <Polyline
-          path={trechoPath}
-          options={{ strokeColor: cor, strokeOpacity: 1.0, strokeWeight: 6 }}
-        />
-
-        {/* 4. RENDERIZAÇÃO CONDICIONAL */}
-        {showEstacas && estacasPoints.map((estaca) => (
-          <MarkerF
-            key={`estaca-${estaca.numero}`}
-            position={estaca.coord}
-            label={{
-              text: estaca.label,
-              color: 'black',
-              fontSize: '10px',
-              fontWeight: 'bold',
-            }}
-            icon={{
-              path: 'M -16 -10 L 16 -10 L 16 10 L -16 10 Z',
-              fillColor: 'white',
-              fillOpacity: 0.9,
-              strokeColor: '#333',
-              strokeWeight: 1,
-              scale: 1,
-              labelOrigin: new google.maps.Point(0, 0),
-            }}
-            zIndex={10}
-          />
-        ))}
-
-        {fotos.map((foto) => (
-          <MarkerF
-            key={foto.id}
-            position={{ lat: foto.latitude, lng: foto.longitude }}
-            zIndex={100}
-          />
-        ))}
-      </GoogleMap>
     </div>
   );
 }

@@ -1,122 +1,137 @@
 'use client';
 
-import { GoogleMap, useJsApiLoader, HeatmapLayerF, Polyline } from '@react-google-maps/api';
-import { useMemo, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { HeatmapPoint } from '@/lib/actions/heatmap-data';
-
-// GRADIENTE AJUSTADO (Verde -> Amarelo -> Vermelho)
-const heatmapGradient = [
-  'rgba(0, 255, 0, 0)',    // 0: Invisível/Verde Transparente
-  'rgba(0, 255, 0, 1)',    // Verde
-  'rgba(191, 255, 0, 1)',  // Verde-Limão
-  'rgba(255, 255, 0, 1)',  // Amarelo
-  'rgba(255, 127, 0, 1)',  // Laranja
-  'rgba(255, 0, 0, 1)',    // Vermelho
-  'rgba(150, 0, 0, 1)'     // Vinho (Crítico)
-];
-
-interface Coordenada { lat: number; lng: number; }
+import type { Coordenada } from '@/lib/geoUtils';
 
 interface ViaHeatmapProps {
   trajeto: Coordenada[] | null;
   heatmapData: HeatmapPoint[];
-  onMapLoad?: (map: google.maps.Map) => void;
+  onMapLoad?: (map: any) => void;
+}
+
+// Cores baseadas no nível de severidade / FP (DNIT)
+function getHeatColor(weight: number, maxWeight: number): string {
+  const ratio = Math.min(1, Math.max(0, weight / (maxWeight || 5)));
+  if (ratio < 0.2) return '#00ff88'; // Verde (Leve)
+  if (ratio < 0.4) return '#aaff00'; // Verde-limão
+  if (ratio < 0.6) return '#ffcc00'; // Amarelo (Médio)
+  if (ratio < 0.8) return '#ff6600'; // Laranja (Severo)
+  return '#ff0033'; // Vermelho vivo (Crítico)
 }
 
 export function ViaHeatmap({ trajeto, heatmapData, onMapLoad }: ViaHeatmapProps) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['geometry', 'visualization'],
-  });
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [currentRadius, setCurrentRadius] = useState(25);
 
-  const mapRef = useRef<google.maps.Map | null>(null);
-  
-  // Estado para o raio dinâmico
-  const [currentRadius, setCurrentRadius] = useState(20);
-
-  // 1. CALCULAR A INTENSIDADE MÁXIMA DINÂMICA
-  // Varre os dados para encontrar o maior peso (FP) presente nesta via.
-  const maxIntensityCalculada = useMemo(() => {
-    if (!heatmapData || heatmapData.length === 0) return 10; // Padrão se vazio
-
-    // Encontra o maior peso entre todos os pontos
-    const maxWeight = Math.max(...heatmapData.map(d => d.weight));
-
-    // Se o maior peso for muito baixo (ex: 2), forçamos um mínimo de 3 para não distorcer a escala.
-    // Se for alto (ex: 50), usamos 50.
-    return Math.max(3, maxWeight);
+  const maxWeight = useMemo(() => {
+    if (!heatmapData || heatmapData.length === 0) return 5;
+    return Math.max(3, ...heatmapData.map((d) => d.weight));
   }, [heatmapData]);
 
-  const processedHeatmapData = useMemo(() => {
-    if (!isLoaded || !heatmapData) return [];
-    return heatmapData.map(point => ({
-      location: new google.maps.LatLng(point.lat, point.lng),
-      weight: point.weight
-    }));
-  }, [isLoaded, heatmapData]);
+  useEffect(() => {
+    let isMounted = true;
 
-  // Função de ajuste de zoom (Raio)
-  const handleZoomChanged = () => {
-    if (!mapRef.current) return;
-    const zoom = mapRef.current.getZoom() || 14;
-    // Fórmula ajustada para garantir visibilidade
-    const newRadius = Math.max(10, (zoom - 9) * 2);
-    setCurrentRadius(newRadius);
-  };
+    async function initMap() {
+      if (!mapContainerRef.current) return;
+      const L = (await import('leaflet')).default;
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    if (trajeto && trajeto.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        trajeto.forEach(coord => bounds.extend(new google.maps.LatLng(coord.lat, coord.lng)));
-        map.fitBounds(bounds);
+      if (!isMounted) return;
+
+      // Destrói instância anterior se existir
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
+      const defaultCenter: [number, number] =
+        trajeto && trajeto.length > 0 ? [trajeto[0].lat, trajeto[0].lng] : [-1.4558, -48.5024];
+
+      const map = L.map(mapContainerRef.current, {
+        center: defaultCenter,
+        zoom: 13,
+        zoomControl: true,
+      });
+
+      // Tile Layer Dark elegante (CartoDB Dark Matter / OSM)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19,
+        subdomains: 'abcd',
+      }).addTo(map);
+
+      // Traçado da Via (Polyline)
+      if (trajeto && trajeto.length > 0) {
+        const latLngs: [number, number][] = trajeto.map((c) => [c.lat, c.lng]);
+        const polyline = L.polyline(latLngs, {
+          color: '#4f8cff',
+          weight: 4,
+          opacity: 0.6,
+        }).addTo(map);
+
+        map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+      }
+
+      // Pontos de Calor / Patologias com círculos dinâmicos
+      if (heatmapData && heatmapData.length > 0) {
+        heatmapData.forEach((point) => {
+          const color = getHeatColor(point.weight, maxWeight);
+          
+          // Halo de calor difuso
+          L.circleMarker([point.lat, point.lng], {
+            radius: currentRadius,
+            fillColor: color,
+            fillOpacity: 0.35,
+            stroke: false,
+          }).addTo(map);
+
+          // Ponto central de impacto
+          const centerPoint = L.circleMarker([point.lat, point.lng], {
+            radius: Math.max(5, currentRadius * 0.35),
+            fillColor: color,
+            fillOpacity: 0.9,
+            color: '#ffffff',
+            weight: 1,
+          }).addTo(map);
+
+          centerPoint.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; color: #111;">
+              <strong>Ponto de Severidade</strong><br/>
+              Peso / FP: <b>${point.weight}</b><br/>
+              Lat: ${point.lat.toFixed(5)}, Lng: ${point.lng.toFixed(5)}
+            </div>
+          `);
+        });
+      }
+
+      mapInstanceRef.current = map;
+      setIsReady(true);
+      if (onMapLoad) onMapLoad(map);
     }
-    
-    // Configura raio inicial
-    const initialZoom = map.getZoom() || 14;
-    setCurrentRadius(Math.max(10, (initialZoom - 5) * 3));
 
-    if (onMapLoad) onMapLoad(map);
-  }, [trajeto, onMapLoad]);
+    initMap();
 
-  if (!isLoaded) return <div className="h-[600px] flex items-center justify-center bg-muted"><Loader2 className="animate-spin" /></div>;
+    return () => {
+      isMounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [trajeto, heatmapData, currentRadius, maxWeight, onMapLoad]);
 
   return (
-    <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '600px', borderRadius: '8px' }}
-        onLoad={handleMapLoad}
-        onZoomChanged={handleZoomChanged}
-        options={{
-            mapTypeControl: false,
-            streetViewControl: false,
-            // Estilo Dark para realçar as cores
-            styles: [
-              { elementType: "geometry", stylers: [{ color: "#242f3e" }] }, 
-              { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] }, 
-              { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }, 
-              { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] }, 
-              { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] }, 
-              { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] }, 
-              { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
-            ]
-        }}
-    >
-      {trajeto && <Polyline path={trajeto} options={{ strokeColor: '#555', strokeWeight: 4, strokeOpacity: 0.5 }} />}
-      
-      <HeatmapLayerF
-        data={processedHeatmapData}
-        options={{
-            gradient: heatmapGradient,
-            radius: currentRadius,
-            opacity: 0.9, // Aumentei um pouco a opacidade para ficar mais vivo
-            
-            // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
-            // Agora o 'vermelho' é atingido quando o peso chega no máximo encontrado na via.
-            maxIntensity: maxIntensityCalculada 
-        }}
-      />
-    </GoogleMap>
+    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border bg-neutral-950">
+      <div ref={mapContainerRef} className="w-full h-full" />
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/80 backdrop-blur-sm z-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+    </div>
   );
 }

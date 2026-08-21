@@ -36,11 +36,11 @@ export function RelatorioList({ relatorios, listType }: RelatorioListProps) {
         <Link
           key={relatorio.id}
           href={`/dashboard-engenheiro/${relatorio.tipo.toLowerCase()}/${relatorio.id}`}
-          className="block border rounded-lg p-4 transition-colors hover:bg-muted/50"
+          className="group block border border-slate-200/90 rounded-2xl p-4.5 bg-white dark:bg-slate-900 transition-all duration-200 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md hover:shadow-purple-500/10"
         >
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h3 className="font-semibold">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
                 {relatorio.trecho.via.name} / {relatorio.trecho.nome}
               </h3>
               <p className="text-sm text-muted-foreground">

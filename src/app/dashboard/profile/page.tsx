@@ -1,12 +1,10 @@
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { PrismaClient } from '@prisma/client';
 import { User, Map, ClipboardList, AlertTriangle, CheckCircle } from 'lucide-react';
 import { ReprovadoCard } from './_components/ReprovadoCard';
-
-const prisma = new PrismaClient();
 
 async function getProfileData(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });

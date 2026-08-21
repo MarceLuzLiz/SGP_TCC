@@ -1,9 +1,8 @@
 'use server';
+import prisma from '@/lib/prisma';
 
-import { PrismaClient, Foto, Patologia, RdsOcorrencia, StatusAprovacao } from '@prisma/client';
+import { Foto, Patologia, RdsOcorrencia, StatusAprovacao } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-
-const prisma = new PrismaClient();
 
 // Tipagem completa para a foto retornada
 type FotoCompleta = Foto & {

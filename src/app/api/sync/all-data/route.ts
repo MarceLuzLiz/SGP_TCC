@@ -1,10 +1,7 @@
-// src/app/api/sync/all-data/route.ts
-
+import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { PrismaClient, StatusAprovacao } from '@prisma/client'; // Importe o Enum
+import { StatusAprovacao } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 interface TokenPayload {
   id: string;
@@ -12,7 +9,7 @@ interface TokenPayload {
 
 export async function GET(req: Request) {
   try {
-    // 1. Autenticação (continua igual)
+    // 1. Autenticação
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Token de autorização ausente' }, { status: 401 });
@@ -23,51 +20,66 @@ export async function GET(req: Request) {
     const decoded = jwt.verify(token, secret) as TokenPayload;
     const userId = decoded.id;
 
-    // 2. Buscar Dados de Base (Vias, Trechos, Vistorias)
+    // 2. Buscar Dados de Base (Vias e Trechos ativos, não suspensos)
     const viaAssignments = await prisma.userViaAssignment.findMany({
       where: { userId: userId },
       select: { viaId: true },
     });
     const assignedViaIds = viaAssignments.map((assignment) => assignment.viaId);
-    const vias = await prisma.via.findMany({ where: { id: { in: assignedViaIds } } });
-    const trechos = await prisma.trecho.findMany({ where: { viaId: { in: assignedViaIds } } });
-    const assignedTrechoIds = trechos.map(t => t.id);
+
+    const vias = await prisma.via.findMany({
+      where: {
+        id: { in: assignedViaIds },
+        isSuspended: false,
+      },
+    });
+    const activeViaIds = vias.map((v) => v.id);
+
+    const trechos = await prisma.trecho.findMany({
+      where: {
+        viaId: { in: activeViaIds },
+        isSuspended: false,
+      },
+    });
+    const assignedTrechoIds = trechos.map((t) => t.id);
+
     const vistorias = await prisma.vistoria.findMany({
       where: { trechoId: { in: assignedTrechoIds } },
       orderBy: { dataVistoria: 'desc' },
     });
+
     const patologias = await prisma.patologia.findMany();
     const ocorrencias = await prisma.rdsOcorrencia.findMany();
 
-    // ✅ 3. LÓGICA DA TRAVA DE SEGURANÇA
-    // Encontra todos os relatórios aprovados
+    // 3. Trava de Segurança de Fotos Aprovadas
     const approvedReports = await prisma.relatorio.findMany({
       where: { statusAprovacao: StatusAprovacao.APROVADO, trechoId: { in: assignedTrechoIds } },
-      select: { id: true }
+      select: { id: true },
     });
-    const approvedReportIds = approvedReports.map(r => r.id);
+    const approvedReportIds = approvedReports.map((r) => r.id);
 
-    // Encontra os *links* das fotos travadas
     const lockedFotoLinks = await prisma.relatorioFoto.findMany({
       where: { relatorioId: { in: approvedReportIds } },
-      select: { fotoId: true }
+      select: { fotoId: true },
     });
-    const lockedPhotoIds = [...new Set(lockedFotoLinks.map(link => link.fotoId))];
+    const lockedPhotoIds = [...new Set(lockedFotoLinks.map((link) => link.fotoId))];
 
-    // ✅ NOVO: Busque os objetos completos das fotos travadas
     const lockedPhotosData = await prisma.foto.findMany({
-      where: { id: { in: lockedPhotoIds } }
+      where: { id: { in: lockedPhotoIds } },
     });
 
-    // 4. Montar o objeto de resposta
+    // 4. Retornar Carga Completa
     const syncData = {
-      vias, trechos, vistorias, patologias, ocorrencias,
+      vias,
+      trechos,
+      vistorias,
+      patologias,
+      ocorrencias,
       lockedPhotoIds,
-      lockedPhotosData // ✅ Envia os dados completos
+      lockedPhotosData,
     };
 
     return NextResponse.json(syncData, { status: 200 });
-    
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 403 });

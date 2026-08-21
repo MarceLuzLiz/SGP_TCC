@@ -1,13 +1,11 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/trechos/[trechoId]/vistorias/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight} from 'lucide-react';
 import { CreateVistoriaButton } from './_components/CreateVistoriaButton';
 import { VistoriaList } from './_components/VistoriaList';
-
-const prisma = new PrismaClient();
 
 async function getTrechoComVistorias(trechoId: string) {
   const trecho = await prisma.trecho.findUnique({

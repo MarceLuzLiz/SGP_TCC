@@ -1,6 +1,6 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard-engenheiro/rds/[relatorioId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
@@ -9,8 +9,6 @@ import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGr
 import { ApprovalActions } from '@/app/dashboard-engenheiro/equipe/_components/approval-actions'; // (Verifique este caminho)
 import { ReproveFeedback } from '../../rft/[relatorioId]/_components/ReproveFeedback'; // Reutiliza o componente
 import { DownloadRdsPdfButton } from '@/components/pdf/DownloadRdsPdfButton';
-
-const prisma = new PrismaClient();
 
 async function getRelatorioDetails(relatorioId: string) {
   // ... (Sua função getRelatorioDetails - sem mudança) ...

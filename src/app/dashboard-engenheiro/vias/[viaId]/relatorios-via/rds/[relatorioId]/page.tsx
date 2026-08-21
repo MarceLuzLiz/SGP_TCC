@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, FileSpreadsheet } from 'lucide-react';
@@ -7,8 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DownloadConsolidadoRdsButton } from '@/components/pdf/DownloadConsolidadoRdsButton';
-
-const prisma = new PrismaClient();
 
 // Interface para os dados JSON do RDS
 interface DadosRDS {

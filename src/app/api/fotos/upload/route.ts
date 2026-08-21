@@ -1,11 +1,9 @@
+import prisma from '@/lib/prisma';
 // src/app/api/fotos/upload/route.ts
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 // ✅ Importe os tipos de resposta da API do Cloudinary
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // Configurar o Cloudinary
 cloudinary.config({ 

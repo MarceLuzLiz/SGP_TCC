@@ -1,12 +1,10 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/trechos/[trechoId]/vistorias/[vistoriaId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, PlusCircle, FileText, CalendarDays, FileCheck2 } from 'lucide-react';
 import { RelatorioStatusCard } from '../_components/RelatorioStatusCard';
-
-const prisma = new PrismaClient();
 
 async function getVistoriaDetails(vistoriaId: string) {
   return await prisma.vistoria.findUnique({

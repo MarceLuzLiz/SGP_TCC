@@ -165,10 +165,12 @@ export function EquipeClientPage({
                 {fiscalDetails.assignedVias.map(({ via }) => (
                   <li
                     key={via.id}
-                    className="flex justify-between items-center rounded-md border p-3"
+                    className="group flex justify-between items-center rounded-xl border border-slate-200/90 bg-white dark:bg-slate-900 p-3.5 transition-all duration-200 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md hover:shadow-purple-500/10"
                   >
                     <div>
-                      <span className="font-medium">{via.name}</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
+                        {via.name}
+                      </span>
                       <p className="text-xs text-muted-foreground">
                         Estacas: {via.estacas || 'N/D'}
                       </p>

@@ -1,10 +1,9 @@
-import { PrismaClient, StatusAprovacao } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { StatusAprovacao } from '@prisma/client';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { RFTEditor } from '../../_components/RFTEditor';
-
-const prisma = new PrismaClient();
 
 async function getEditData(relatorioId: string) {
   const relatorio = await prisma.relatorio.findUnique({

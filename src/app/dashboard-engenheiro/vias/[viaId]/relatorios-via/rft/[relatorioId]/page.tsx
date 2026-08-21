@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, FileText } from 'lucide-react';
@@ -6,8 +6,6 @@ import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DownloadConsolidadoRftButton } from '@/components/pdf/DownloadConsolidadoRftButton';
-
-const prisma = new PrismaClient();
 
 // Função de busca para este relatório
 async function getConsolidadoDetails(relatorioViaId: string) {

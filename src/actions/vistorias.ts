@@ -1,11 +1,9 @@
 'use server';
+import prisma from '@/lib/prisma';
 
-import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-
-const prisma = new PrismaClient();
 
 interface ActionResult {
   success?: string;

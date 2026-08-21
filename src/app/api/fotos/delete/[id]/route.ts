@@ -1,10 +1,9 @@
+import prisma from '@/lib/prisma';
 // src/app/api/fotos/delete/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { PrismaClient, StatusAprovacao } from '@prisma/client';
+import { StatusAprovacao } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // Configura o Cloudinary (necessário para a exclusão)
 cloudinary.config({ 

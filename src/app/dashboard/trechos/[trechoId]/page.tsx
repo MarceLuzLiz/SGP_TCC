@@ -1,6 +1,6 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/trechos/[trechoId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { 
@@ -11,8 +11,6 @@ import {
   CalendarDays 
 } from 'lucide-react';
 import { formatKmToStakes } from '@/lib/formatters';
-
-const prisma = new PrismaClient();
 
 async function getTrechoDetails(trechoId: string) {
   const trecho = await prisma.trecho.findUnique({

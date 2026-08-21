@@ -1,12 +1,11 @@
-import { PrismaClient, Prisma, StatusAprovacao } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Prisma, StatusAprovacao } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, FilePlus } from 'lucide-react';
 import { RDSList } from './_components/RDSList';
 import { DateFilter } from '@/app/dashboard/_components/DateFilter';
 import { StatusFilter } from '@/app/dashboard/_components/StatusFilter';
-
-const prisma = new PrismaClient();
 
 async function getRDSData(trechoId: string, from?: string, to?: string, statuses?: string[]) {
   const whereClause: Prisma.RelatorioWhereInput = { tipo: 'RDS', trechoId: trechoId };

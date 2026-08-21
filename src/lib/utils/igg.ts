@@ -1,7 +1,5 @@
-import { PrismaClient, FotoTipo, Foto, StatusAprovacao, Patologia} from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import prisma from '@/lib/prisma';
+import { FotoTipo, Foto, StatusAprovacao, Patologia } from '@prisma/client';
 // --- TIPO CORRETO ---
 type FotoComPatologia = Foto & {
   patologia: {

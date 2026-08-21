@@ -1,10 +1,9 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { PhotoGrid } from './_components/PhotoGrid'; // Importa o componente local
-
-const prisma = new PrismaClient();
 
 // Esta é a sua função de busca de dados, perfeita para esta página
 async function getGalleryData(

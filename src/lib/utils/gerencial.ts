@@ -1,7 +1,5 @@
-import { PrismaClient, FotoTipo, StatusAprovacao, Foto, Patologia, RdsOcorrencia } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import prisma from '@/lib/prisma';
+import { FotoTipo, StatusAprovacao, Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 type FotoCompleta = Foto & { patologia: Patologia | null; rdsOcorrencia: RdsOcorrencia | null };
 
 interface DadosGerenciais {

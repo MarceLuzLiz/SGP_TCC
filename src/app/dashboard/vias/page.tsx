@@ -1,14 +1,12 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/vias/page.tsx
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Route, MapPin, Milestone } from 'lucide-react';
 import { formatKmToStakes } from '@/lib/formatters';
-
-const prisma = new PrismaClient();
 
 async function getViasDoUsuario(userId: string) {
   const assignments = await prisma.userViaAssignment.findMany({

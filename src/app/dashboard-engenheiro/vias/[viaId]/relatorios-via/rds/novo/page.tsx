@@ -1,9 +1,8 @@
-import { PrismaClient, StatusAprovacao, RelatorioTipo } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { StatusAprovacao, RelatorioTipo } from '@prisma/client';
 import { notFound } from 'next/navigation';
 // 1. REUTILIZAR o formulário que já criámos para o RFT
 import { CreateConsolidadoForm } from '@/app/dashboard-engenheiro/vias/[viaId]/relatorios-via/rft/novo/_components/create-consolidado-form';
-
-const prisma = new PrismaClient();
 
 // Busca os dados necessários, filtrando por RDS
 async function getDadosParaFormulario(viaId: string) {

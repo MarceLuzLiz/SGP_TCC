@@ -1,13 +1,11 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/trechos/[trechoId]/rds/[relatorioId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronRight, CalendarDays } from 'lucide-react';
 import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGrid';
-
-const prisma = new PrismaClient();
 
 // A função de busca é a mesma do RFT
 async function getRelatorioDetails(relatorioId: string) {

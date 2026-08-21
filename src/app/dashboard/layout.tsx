@@ -2,59 +2,73 @@
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { UserMenu } from './_components/UserMenu'
+import { UserNav } from '@/components/auth/UserNav';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Busca a sessão no servidor
   const session = await getServerSession(authOptions);
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      
-      {/* Barra Lateral (Sidebar) - Placeholder */}
-      
-
-      {/* Conteúdo Principal */}
-      <main className="flex-1">
-        {/* Cabeçalho (Header) ATUALIZADO */}
-        <header className="flex h-16 items-center justify-between border-b bg-white px-8">
-          <div>
-          <nav className="hidden items-center flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-          {/* Links do Admin */}
-
-          <Link href="/dashboard" className="text-2xl font-bold text-blue-600">SGP</Link>
-          
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur-md px-4 md:px-6">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+          {/* Brand Logo Oficial */}
           <Link
             href="/dashboard"
-            className=" pl-4 text-muted-foreground transition-colors hover:text-foreground"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-90 mr-2"
+          >
+            <div className="h-8.5 w-8.5 overflow-hidden rounded-lg shadow-xs border border-slate-100 dark:border-slate-800">
+              <Image
+                src="/logo.png"
+                alt="SGP Pavimentos Logo"
+                width={34}
+                height={34}
+                className="h-full w-full object-cover rounded-lg"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-lg leading-none tracking-tight text-teal-800 dark:text-teal-400">
+                SGP
+              </span>
+              <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Painel do Fiscal
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard"
+            className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
             Início
           </Link>
           <Link
             href="/dashboard/vias"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
-            Mnhas vias
+            Minhas Vias
           </Link>
           <Link
             href="/dashboard/profile"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
-            Meu perfil
+            Meu Perfil
           </Link>
         </nav>
-        </div>
-          {/* Renderiza o novo componente com os dados da sessão */}
-          <UserMenu session={session} />
-          
-        </header>
 
-        {/* O conteúdo da página será renderizado aqui */}
-        <div className="py-12 px-18">{children}</div>
+        <div className="ml-auto">
+          <UserNav />
+        </div>
+      </header>
+
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 max-w-7xl w-full mx-auto">
+        {children}
       </main>
     </div>
   );

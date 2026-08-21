@@ -1,4 +1,5 @@
-import { Foto, Patologia, PrismaClient, RdsOcorrencia } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import { IggDisplay } from '@/app/dashboard-engenheiro/trechos/[trechoId]/_components/igg-display';
 import {
   Table,
@@ -11,8 +12,6 @@ import {
 import { notFound } from 'next/navigation';
 import { DownloadGerencialPdfButton } from '@/components/pdf/DownloadGerencialPdfButton'; // <-- IMPORTAR
 import { formatKmToStakes } from '@/lib/formatters';
-
-const prisma = new PrismaClient();
 
 type FotoCompleta = Foto & { 
   patologia: Patologia | null; 

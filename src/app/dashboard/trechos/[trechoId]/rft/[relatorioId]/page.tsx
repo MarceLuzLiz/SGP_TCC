@@ -1,12 +1,10 @@
+import prisma from '@/lib/prisma';
 // src/app/dashboard/trechos/[trechoId]/rft/[relatorioId]/page.tsx
 
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGrid';
-
-const prisma = new PrismaClient();
 
 async function getRelatorioDetails(relatorioId: string) {
   return await prisma.relatorio.findUnique({

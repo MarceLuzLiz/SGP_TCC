@@ -1,12 +1,11 @@
-import { Prisma, PrismaClient, RelatorioTipo, StatusAprovacao } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Prisma, RelatorioTipo, StatusAprovacao } from '@prisma/client';
 import { Role } from '@prisma/client';
 import {
   calculateIGGForTrecho,
   calculateIGGForVia,
   getIggHistoryForTrecho,
 } from '@/lib/utils/igg';
-
-const prisma = new PrismaClient();
 
 /**
  * MÓDULO 2: ENGENHEIRO

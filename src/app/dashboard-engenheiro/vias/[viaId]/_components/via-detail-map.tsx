@@ -1,6 +1,5 @@
 'use client';
 
-// --- IMPORTAÇÕES DO REACT E BIBLIOTECAS ---
 import {
   useCallback,
   useRef,
@@ -9,17 +8,16 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import {
-  GoogleMap,
-  useJsApiLoader,
-  Polyline,
-  MarkerF,
-} from '@react-google-maps/api';
 import { Foto, Trecho, Patologia, RdsOcorrencia } from '@prisma/client';
 import { toast } from 'sonner';
 import { createTrecho } from '@/lib/actions/vias';
+import {
+  Coordenada,
+  findLatLngAtKm,
+  findPathBetweenKms,
+  calculateStakes,
+} from '@/lib/geoUtils';
 
-// --- IMPORTAÇÕES DOS COMPONENTES (ShadCN/UI) ---
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,10 +29,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Milestone } from 'lucide-react'; // <--- Ícone Milestone adicionado
+import { Loader2, Milestone } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
-// --- DEFINIÇÕES GLOBAIS (Constantes e Tipos) ---
 const containerStyle = {
   width: '100%',
   height: '600px',
@@ -42,11 +39,8 @@ const containerStyle = {
   borderTopRightRadius: '0.5rem',
 };
 
-// Adicione 'visualization' aqui para bater com a configuração do Mapa de Calor
-const libraries: ('geometry' | 'visualization')[] = ['geometry', 'visualization'];
-type Coordenada = { lat: number; lng: number };
-const SLIDER_STEP = 0.001; // Precisão de 1 metro
-const PENDING_COLOR = '#FF0000'; // Vermelho
+const SLIDER_STEP = 0.001;
+const PENDING_COLOR = '#ef4444'; // Vermelho
 
 interface ViaDetailMapProps {
   viaId: string;
@@ -59,164 +53,6 @@ interface ViaDetailMapProps {
   viaExtensaoKm: number;
 }
 
-interface PontoEstaca {
-  coord: Coordenada;
-  numero: number;
-  label: string;
-}
-
-// --- FUNÇÕES AUXILIARES DE GEOMETRIA ---
-
-/**
- * Encontra a Coordenada (LatLng) exata ao longo de um trajeto para um determinado Km.
- */
-function findLatLngAtKm(
-  trajeto: Coordenada[],
-  targetKm: number,
-): Coordenada | null {
-  if (!window.google?.maps?.geometry || trajeto.length === 0) return null;
-  const geometry = window.google.maps.geometry.spherical;
-  const targetMeters = targetKm * 1000;
-  let accumulatedMeters = 0;
-
-  for (let i = 0; i < trajeto.length - 1; i++) {
-    const segmentStart = trajeto[i];
-    const segmentEnd = trajeto[i + 1];
-    const segmentLength = geometry.computeLength([segmentStart, segmentEnd]);
-
-    if (accumulatedMeters + segmentLength + 1 >= targetMeters) {
-      const distanceNeeded = targetMeters - accumulatedMeters;
-      const fraction = distanceNeeded / segmentLength;
-      const safeFraction = Math.max(0, Math.min(1, fraction));
-      const latLng = geometry.interpolate(segmentStart, segmentEnd, safeFraction);
-      return { lat: latLng.lat(), lng: latLng.lng() };
-    }
-    accumulatedMeters += segmentLength;
-  }
-  return trajeto[trajeto.length - 1];
-}
-
-/**
- * Encontra o traçado (array de Coordenadas) ENTRE dois Kms.
- */
-function findPathBetweenKm(
-  trajeto: Coordenada[],
-  kmStart: number,
-  kmEnd: number,
-): Coordenada[] {
-  if (!window.google?.maps?.geometry || trajeto.length === 0) return [];
-  const geometry = window.google.maps.geometry.spherical;
-  const metersStart = kmStart * 1000;
-  const metersEnd = kmEnd * 1000;
-  let accumulatedMeters = 0;
-  const trechoPath: Coordenada[] = [];
-  let started = false;
-
-  for (let i = 0; i < trajeto.length - 1; i++) {
-    const segmentStart = trajeto[i];
-    const segmentEnd = trajeto[i + 1];
-    const segmentStartLatLng = new google.maps.LatLng(segmentStart);
-    const segmentEndLatLng = new google.maps.LatLng(segmentEnd);
-    const segmentLength = geometry.computeLength([
-      segmentStartLatLng,
-      segmentEndLatLng,
-    ]);
-    const segmentEndMeters = accumulatedMeters + segmentLength;
-
-    if (!started && segmentEndMeters >= metersStart) {
-      started = true;
-      const distanceIntoSegment = metersStart - accumulatedMeters;
-      const fraction = distanceIntoSegment / segmentLength;
-      const startPoint = geometry.interpolate(
-        segmentStartLatLng,
-        segmentEndLatLng,
-        Math.max(0, fraction),
-      );
-      trechoPath.push({ lat: startPoint.lat(), lng: startPoint.lng() });
-
-      if (segmentEndMeters >= metersEnd) {
-        const distanceIntoSegmentEnd = metersEnd - accumulatedMeters;
-        const fractionEnd = distanceIntoSegmentEnd / segmentLength;
-        const endPoint = geometry.interpolate(
-          segmentStartLatLng,
-          segmentEndLatLng,
-          Math.min(1, fractionEnd),
-        );
-        trechoPath.push({ lat: endPoint.lat(), lng: endPoint.lng() });
-        break;
-      } else {
-        trechoPath.push(segmentEnd);
-      }
-    } else if (started && segmentEndMeters < metersEnd) {
-      trechoPath.push(segmentEnd);
-    } else if (started && segmentEndMeters >= metersEnd) {
-      const distanceIntoSegment = metersEnd - accumulatedMeters;
-      const fraction = distanceIntoSegment / segmentLength;
-      const endPoint = geometry.interpolate(
-        segmentStartLatLng,
-        segmentEndLatLng,
-        Math.min(1, fraction),
-      );
-      trechoPath.push({ lat: endPoint.lat(), lng: endPoint.lng() });
-      break;
-    }
-    accumulatedMeters += segmentLength;
-  }
-  return trechoPath;
-}
-
-/**
- * Gera pontos de estacas. 
- * Adaptada para aceitar 'intervalo' customizado (ex: 100m para visão macro).
- */
-function gerarPontosEstacasGoogle(
-  path: Coordenada[],
-  kmInicialAbsoluto: number,
-  intervalo: number = 20
-): PontoEstaca[] {
-  if (!window.google?.maps?.geometry || path.length < 2) return [];
-  
-  const geometry = window.google.maps.geometry.spherical;
-  const pontos: PontoEstaca[] = [];
-  
-  const offsetInicial = kmInicialAbsoluto * 1000;
-  
-  // Define a próxima meta baseada no intervalo (ex: a cada 100m)
-  let proximaMeta = Math.ceil(offsetInicial / intervalo) * intervalo;
-  if (proximaMeta === offsetInicial) proximaMeta += intervalo;
-
-  let distanciaPercorridaNoPath = 0;
-
-  for (let i = 0; i < path.length - 1; i++) {
-    const p1 = new google.maps.LatLng(path[i]);
-    const p2 = new google.maps.LatLng(path[i+1]);
-    const distSegmento = geometry.computeLength([p1, p2]);
-    const absDistP1 = offsetInicial + distanciaPercorridaNoPath;
-
-    while (proximaMeta <= absDistP1 + distSegmento) {
-      const distIntoSegment = proximaMeta - absDistP1;
-      const fraction = distIntoSegment / distSegmento;
-      const pEstaca = geometry.interpolate(p1, p2, fraction);
-      
-      // O número da estaca é sempre baseado na regra de 20m
-      const numEstacaReal = Math.round(proximaMeta / 20);
-
-      pontos.push({
-        coord: { lat: pEstaca.lat(), lng: pEstaca.lng() },
-        numero: numEstacaReal,
-        label: `${numEstacaReal}`
-      });
-
-      proximaMeta += intervalo;
-    }
-    distanciaPercorridaNoPath += distSegmento;
-  }
-
-  return pontos;
-}
-
-// --- COMPONENTE PRINCIPAL ---
-
 export function ViaDetailMap({
   viaId,
   trajeto,
@@ -224,20 +60,19 @@ export function ViaDetailMap({
   trechosExistentes,
   viaExtensaoKm,
 }: ViaDetailMapProps) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const staticLayerGroupRef = useRef<any>(null);
+  const sliderLayerGroupRef = useRef<any>(null);
+  const initialBoundsFittedRef = useRef<boolean>(false);
 
+  const [isMapReady, setIsMapReady] = useState(false);
   const [isPending, startTransition] = useTransition();
-  
-  // --- ESTADO PARA CONTROLAR A VISIBILIDADE DAS ESTACAS ---
   const [showEstacas, setShowEstacas] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [trechoNome, setTrechoNome] = useState('');
-  const [trechoCor, setTrechoCor] = useState('#3b82f6'); // Azul Padrão
+  const [trechoCor, setTrechoCor] = useState('#3b82f6');
 
   // Calcula o Km inicial do próximo trecho
   const proximoKmInicial = useMemo(() => {
@@ -252,36 +87,211 @@ export function ViaDetailMap({
     setSliderValue(proximoKmInicial);
   }, [proximoKmInicial]);
 
-  const mapRef = useRef<google.maps.Map | null>(null);
-
-  const onMapLoad = useCallback(
-    (map: google.maps.Map) => {
-      mapRef.current = map;
-      if (trajeto && Array.isArray(trajeto) && trajeto.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        trajeto.forEach((coord: Coordenada) => {
-          bounds.extend(new google.maps.LatLng(coord.lat, coord.lng));
-        });
-        map.fitBounds(bounds);
-      }
-    },
-    [trajeto],
-  );
-
   const movableMarkerPosition = useMemo(() => {
-    if (!trajeto || !isLoaded) return null;
+    if (!trajeto) return null;
     return findLatLngAtKm(trajeto, sliderValue);
-  }, [trajeto, sliderValue, isLoaded]);
+  }, [trajeto, sliderValue]);
 
-  // --- GERAÇÃO DAS ESTACAS DA VIA INTEIRA ---
+  // Estacas reais de 20 em 20 metros (Padrão Oficial DNIT)
   const estacasPoints = useMemo(() => {
-    // Aqui usamos um intervalo de 100m (5 estacas) para não poluir
-    return isLoaded && trajeto && trajeto.length > 0
-      ? gerarPontosEstacasGoogle(trajeto, 0, 100) 
-      : [];
-  }, [isLoaded, trajeto]);
+    if (!trajeto || trajeto.length < 2) return [];
+    return calculateStakes(trajeto, 20);
+  }, [trajeto]);
 
-  // --- AÇÕES DO USUÁRIO ---
+  const remainingDistance = viaExtensaoKm - proximoKmInicial;
+  const isCompleto = remainingDistance < SLIDER_STEP;
+
+  // 1. Inicializar Leaflet Map (Executa apenas uma vez ao montar o container)
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initMap() {
+      if (!mapContainerRef.current) return;
+      const L = (await import('leaflet')).default;
+
+      if (!isMounted) return;
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
+      if ((mapContainerRef.current as any)._leaflet_id) {
+        delete (mapContainerRef.current as any)._leaflet_id;
+      }
+
+      const defaultCenter: [number, number] =
+        trajeto && trajeto.length > 0 ? [trajeto[0].lat, trajeto[0].lng] : [-1.4558, -48.5024];
+
+      const map = L.map(mapContainerRef.current, {
+        center: defaultCenter,
+        zoom: 14,
+        zoomControl: true,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      staticLayerGroupRef.current = L.layerGroup().addTo(map);
+      sliderLayerGroupRef.current = L.layerGroup().addTo(map);
+      mapInstanceRef.current = map;
+      initialBoundsFittedRef.current = false;
+
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+
+      setIsMapReady(true);
+    }
+
+    initMap();
+
+    return () => {
+      isMounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      setIsMapReady(false);
+    };
+  }, [viaId]);
+
+  // 2. Renderizar camadas ESTÁTICAS (Polylines de trechos, pendente, estacas e fotos)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !staticLayerGroupRef.current || !isMapReady) return;
+
+    async function updateStaticLayers() {
+      const L = (await import('leaflet')).default;
+      const map = mapInstanceRef.current;
+      const lg = staticLayerGroupRef.current;
+      lg.clearLayers();
+
+      if (!trajeto || trajeto.length === 0) return;
+
+      // a) Traçado PENDENTE (Vermelho tracejado)
+      if (!isCompleto) {
+        const pendingPath = findPathBetweenKms(trajeto, proximoKmInicial, viaExtensaoKm);
+        if (pendingPath.length > 0) {
+          const latLngs: [number, number][] = pendingPath.map((p) => [p.lat, p.lng]);
+          L.polyline(latLngs, {
+            color: PENDING_COLOR,
+            weight: 6,
+            opacity: 0.85,
+            dashArray: '8, 8',
+          }).addTo(lg);
+        }
+      }
+
+      // b) Traçados CONCLUÍDOS (Coloridos por trecho)
+      trechosExistentes.forEach((trecho) => {
+        const trechoPath = findPathBetweenKms(trajeto, trecho.kmInicial, trecho.kmFinal);
+        if (trechoPath.length > 0) {
+          const latLngs: [number, number][] = trechoPath.map((p) => [p.lat, p.lng]);
+          const poly = L.polyline(latLngs, {
+            color: trecho.cor || '#3b82f6',
+            weight: 6,
+            opacity: 0.95,
+          }).addTo(lg);
+
+          poly.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; color: #111;">
+              <strong>${trecho.nome}</strong><br/>
+              Km ${trecho.kmInicial.toFixed(2)} ao Km ${trecho.kmFinal.toFixed(2)}
+            </div>
+          `);
+        }
+      });
+
+      // c) Ajustar Bounds APENAS na primeira vez que o mapa é carregado
+      if (!initialBoundsFittedRef.current) {
+        const fullLatLngs: [number, number][] = trajeto.map((p) => [p.lat, p.lng]);
+        if (fullLatLngs.length > 1) {
+          const bounds = L.latLngBounds(fullLatLngs);
+          map.fitBounds(bounds, { padding: [40, 40] });
+          initialBoundsFittedRef.current = true;
+        }
+      }
+
+      // d) Estacas da Via (20 em 20 metros oficiais com auto-ajuste de largura)
+      if (showEstacas) {
+        estacasPoints.forEach((estaca) => {
+          const estacaIcon = L.divIcon({
+            className: 'custom-stake-wrapper',
+            html: `<div style="background:white; color:#0f172a; font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; border:1px solid #334155; box-shadow:0 1px 4px rgba(0,0,0,0.35); text-align:center; white-space:nowrap; display:inline-block; transform:translate(-50%, -50%);">${estaca.label}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          });
+          const marker = L.marker([estaca.coord.lat, estaca.coord.lng], { icon: estacaIcon }).addTo(lg);
+          marker.bindTooltip(
+            `Estaca ${estaca.label} (Distância: ${(estaca.numero * 20).toFixed(0)}m)`,
+            { direction: 'top', offset: [0, -10] }
+          );
+        });
+      }
+
+      // e) Pins das Fotos
+      fotos.forEach((foto) => {
+        const fotoIcon = L.divIcon({
+          className: 'custom-photo-pin',
+          html: `<div style="background:#0ea5e9; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6],
+        });
+        const marker = L.marker([foto.latitude, foto.longitude], { icon: fotoIcon }).addTo(lg);
+        marker.bindPopup(`
+          <div style="font-family: sans-serif; font-size: 12px; color: #111; max-width: 180px;">
+            <strong>Foto ${foto.tipo}</strong><br/>
+            ${foto.patologia ? `Patologia: ${foto.patologia.classificacaoEspecifica}<br/>` : ''}
+            ${foto.estaca ? `Estaca: ${foto.estaca}<br/>` : ''}
+            <small>${new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}</small>
+          </div>
+        `);
+      });
+    }
+
+    updateStaticLayers();
+  }, [
+    isMapReady,
+    trajeto,
+    trechosExistentes,
+    proximoKmInicial,
+    viaExtensaoKm,
+    isCompleto,
+    showEstacas,
+    estacasPoints,
+    fotos,
+  ]);
+
+  // 3. Renderizar o MARCADOR DO SLIDER dinamicamente
+  useEffect(() => {
+    if (!mapInstanceRef.current || !sliderLayerGroupRef.current || !isMapReady) return;
+
+    async function updateSliderMarker() {
+      const L = (await import('leaflet')).default;
+      const sliderLg = sliderLayerGroupRef.current;
+      sliderLg.clearLayers();
+
+      if (movableMarkerPosition && !isCompleto) {
+        const sliderIcon = L.divIcon({
+          className: 'custom-slider-pin',
+          html: `<div style="background:#ef4444; color:white; font-size:11px; font-weight:bold; padding:3px 7px; border-radius:6px; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap;">Km ${sliderValue.toFixed(3)}</div>`,
+          iconSize: [60, 24],
+          iconAnchor: [30, 24],
+        });
+        L.marker([movableMarkerPosition.lat, movableMarkerPosition.lng], {
+          icon: sliderIcon,
+          zIndexOffset: 1000,
+        }).addTo(sliderLg);
+      }
+    }
+
+    updateSliderMarker();
+  }, [isMapReady, movableMarkerPosition, isCompleto, sliderValue]);
+
   const handleOpenModal = () => {
     if (sliderValue <= proximoKmInicial) {
       toast.error('Arraste o slider para definir um Km Final maior que o inicial.');
@@ -291,18 +301,19 @@ export function ViaDetailMap({
     setModalOpen(true);
   };
 
-  const handleSaveTrecho = () => {
+  const handleSaveTrecho = (e: React.FormEvent) => {
+    e.preventDefault();
+
     startTransition(async () => {
       const formData = new FormData();
       formData.append('viaId', viaId);
       formData.append('nome', trechoNome);
       formData.append('kmInicial', proximoKmInicial.toString());
+      formData.append('kmFinal', sliderValue.toString());
       formData.append('cor', trechoCor);
 
-      const kmFinalReal = Math.min(sliderValue, viaExtensaoKm);
-      formData.append('kmFinal', kmFinalReal.toString());
-
       const result = await createTrecho(formData);
+
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -312,198 +323,146 @@ export function ViaDetailMap({
     });
   };
 
-  const remainingDistance = viaExtensaoKm - proximoKmInicial;
-  const isCompleto = remainingDistance < SLIDER_STEP;
-
-  if (!isLoaded) {
-    return (
-      <div style={containerStyle} className="flex items-center justify-center bg-muted">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="relative group"> {/* Wrapper relativo para o botão */}
-        
-        {/* BOTÃO FLUTUANTE DE ESTACAS */}
-        <div className="absolute top-2 right-16 z-10">
+    <div>
+      {/* Botão de alternância de Estacas */}
+      <div className="relative">
+        <div ref={mapContainerRef} style={containerStyle} />
+
+        <div className="absolute top-3 right-3 z-[400]">
           <Button
-            variant={showEstacas ? "default" : "secondary"}
+            type="button"
             size="sm"
             onClick={() => setShowEstacas(!showEstacas)}
-            className="shadow-md h-8 text-xs gap-2"
-            title={showEstacas ? "Ocultar Estacas" : "Mostrar Estacas (a cada 100m)"}
+            className={`shadow-md text-xs gap-1.5 transition-all ${
+              showEstacas
+                ? 'bg-teal-700 text-white hover:bg-teal-800'
+                : 'bg-white/95 text-slate-800 hover:bg-white border border-slate-300 dark:bg-slate-900 dark:text-slate-100'
+            }`}
           >
-            <Milestone className="h-4 w-4" />
-            {showEstacas ? "Ocultar Estacas" : "Ver Estacas"}
+            <Milestone className="h-3.5 w-3.5" />
+            {showEstacas ? 'Ocultar Estacas' : 'Ver Estacas'}
           </Button>
         </div>
-
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          zoom={14}
-          onLoad={onMapLoad}
-          options={{
-            mapTypeControl: false,
-            streetViewControl: false,
-          }}
-        >
-          {/* 1. Traçado PENDENTE (Vermelho) */}
-          {trajeto && !isCompleto && (
-            <Polyline
-              path={findPathBetweenKm(trajeto, proximoKmInicial, viaExtensaoKm)}
-              options={{ strokeColor: PENDING_COLOR, strokeOpacity: 0.8, strokeWeight: 6, zIndex: 1 }}
-            />
-          )}
-
-          {/* 2. Traçados CONCLUÍDOS (Coloridos) */}
-          {trajeto && trechosExistentes.map((trecho) => (
-            <Polyline
-              key={trecho.id}
-              path={findPathBetweenKm(trajeto, trecho.kmInicial, trecho.kmFinal)}
-              options={{ strokeColor: trecho.cor, strokeOpacity: 1.0, strokeWeight: 6, zIndex: 2 }}
-            />
-          ))}
-
-          {/* 3. Marcador do Slider */}
-          {movableMarkerPosition && !isCompleto && (
-            <MarkerF position={movableMarkerPosition} label="Km Final" zIndex={99} />
-          )}
-
-          {/* 4. BALÕES DAS ESTACAS (CONDICIONAL) */}
-          {showEstacas && estacasPoints.map((estaca) => (
-            <MarkerF
-              key={`estaca-via-${estaca.numero}`}
-              position={estaca.coord}
-              label={{
-                text: estaca.label,
-                color: 'black',
-                fontSize: '10px',
-                fontWeight: 'bold',
-              }}
-              icon={{
-                path: 'M -16 -10 L 16 -10 L 16 10 L -16 10 Z',
-                fillColor: 'white',
-                fillOpacity: 0.9,
-                strokeColor: '#333',
-                strokeWeight: 1,
-                scale: 1,
-                labelOrigin: new google.maps.Point(0, 0),
-              }}
-              zIndex={10}
-            />
-          ))}
-
-          {/* 5. Pins das Fotos */}
-          {fotos.map((foto: Foto) => (
-            <MarkerF
-              key={foto.id}
-              position={{ lat: foto.latitude, lng: foto.longitude }}
-              zIndex={98}
-            />
-          ))}
-        </GoogleMap>
       </div>
 
-      {/* PAINEL DE CONTROLE DO SLIDER */}
-      {!isCompleto ? (
-        <div className="p-4 border-t space-y-4">
-          <div>
-            <Label>Definir Ponto Final do Trecho</Label>
-            <p className="text-sm text-muted-foreground">
-              Arraste o slider para posicionar o marcador no mapa.
-            </p>
+      {/* Controle do Slider */}
+      <div className="p-4 bg-muted/40 border-t space-y-4">
+        {isCompleto ? (
+          <div className="text-center py-2 text-green-700 dark:text-green-400 font-semibold text-sm">
+            ✅ A via está 100% dividida em trechos.
           </div>
-          <div className="flex gap-4 items-center">
-            <span className="font-mono text-sm">
-              {proximoKmInicial.toFixed(3)} km
-            </span>
+        ) : (
+          <>
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-semibold">
+                Novo Trecho: Km {proximoKmInicial.toFixed(3)} até Km {sliderValue.toFixed(3)}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                Extensão: {(sliderValue - proximoKmInicial).toFixed(3)} km
+              </span>
+            </div>
+
             <Slider
-              value={[sliderValue]}
-              onValueChange={([val]: [number]) => setSliderValue(val)}
               min={proximoKmInicial}
               max={viaExtensaoKm}
               step={SLIDER_STEP}
-              className="flex-1"
+              value={[sliderValue]}
+              onValueChange={(val) => setSliderValue(val[0])}
+              className="py-1"
             />
-            <span className="font-mono text-sm">
-              {viaExtensaoKm.toFixed(3)} km
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="font-mono font-bold text-lg">
-              Km Final: {sliderValue.toFixed(3)}
-            </span>
-            <Button onClick={handleOpenModal}>Definir Ponto e Salvar</Button>
-          </div>
-        </div>
-      ) : (
-        <div className="p-4 border-t text-center">
-          <p className="font-medium text-green-600">
-            ✅ A via está 100% dividida em trechos.
-          </p>
-        </div>
-      )}
 
-      {/* MODAL (Mantido igual) */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Novo Trecho</DialogTitle>
-            <DialogDescription>
-              Revise os dados, dê um nome e escolha uma cor para o trecho.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Km Inicial</Label>
-                <Input value={proximoKmInicial.toFixed(3)} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Km Final (Calculado)</Label>
-                <Input value={sliderValue.toFixed(3)} disabled />
-              </div>
+            <div className="flex justify-between items-center pt-1">
+              <span className="text-xs text-muted-foreground">
+                Início: {proximoKmInicial.toFixed(3)} km
+              </span>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleOpenModal}
+                disabled={sliderValue <= proximoKmInicial}
+                className="gap-2"
+              >
+                Salvar Trecho
+              </Button>
+
+              <span className="text-xs text-muted-foreground">
+                Fim da Via: {viaExtensaoKm.toFixed(3)} km
+              </span>
             </div>
+          </>
+        )}
+      </div>
 
-            <div className="grid grid-cols-3 gap-4 items-end">
-              <div className="space-y-2 col-span-2">
+      {/* Modal para Definir Nome e Cor do Novo Trecho */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleSaveTrecho}>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Trecho</DialogTitle>
+              <DialogDescription>
+                Defina o nome e a cor de identificação deste trecho no mapa.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
                 <Label htmlFor="nome">Nome do Trecho</Label>
                 <Input
                   id="nome"
+                  required
                   value={trechoNome}
                   onChange={(e) => setTrechoNome(e.target.value)}
+                  placeholder="Ex: Trecho 01"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Km Inicial</Label>
+                  <Input value={`Km ${proximoKmInicial.toFixed(3)}`} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Km Final</Label>
+                  <Input value={`Km ${sliderValue.toFixed(3)}`} disabled />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="cor">Cor</Label>
-                <Input
-                  id="cor"
-                  type="color"
-                  value={trechoCor}
-                  onChange={(e) => setTrechoCor(e.target.value)}
-                  className="w-full h-10 p-1"
-                />
+                <Label htmlFor="cor">Cor no Mapa</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    id="cor"
+                    value={trechoCor}
+                    onChange={(e) => setTrechoCor(e.target.value)}
+                    className="h-10 w-14 rounded cursor-pointer border p-0.5"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Esta cor será usada na polilinha do trecho
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveTrecho} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Trecho
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalOpen(false)}
+                disabled={isPending}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isPending || !trechoNome}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar e Criar
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

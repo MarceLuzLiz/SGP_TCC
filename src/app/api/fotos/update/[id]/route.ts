@@ -1,10 +1,9 @@
+import prisma from '@/lib/prisma';
 // src/app/api/fotos/update/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { PrismaClient, StatusAprovacao } from '@prisma/client';
+import { StatusAprovacao } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
