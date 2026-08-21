@@ -11,6 +11,7 @@ import { IggDisplay } from './_components/igg-display';
 import { TrechoApprovalList } from './_components/trecho-approval-list';
 import { HistoricoVistorias } from './_components/historico-vistorias';
 import { GraficoEvolucao } from './_components/grafico-evolucao';
+import { getIggHistoryForTrecho } from '@/lib/utils/igg';
 import { IggGeneratorCard } from './_components/IggGeneratorCard';
 import { EditTrechoDialog } from '@/app/dashboard-engenheiro/vias/[viaId]/_components/EditTrechoDialog';
 import { RequestExclusionDialog } from '@/app/dashboard-engenheiro/vias/[viaId]/_components/RequestExclusionDialog';
@@ -67,6 +68,8 @@ export default async function TrechoDetailPage(
 
   const qtdEstacas = Math.max(1, endStakeNum - startStakeNum);
   const extensaoKm = Math.abs(trecho.kmFinal - trecho.kmInicial);
+
+  const iggHistory = await getIggHistoryForTrecho(params.trechoId);
 
   return (
     <div className="space-y-6">
@@ -229,7 +232,7 @@ export default async function TrechoDetailPage(
                   <CardTitle>Evolução do IGG</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <GraficoEvolucao trechoId={trecho.id} />
+                  <GraficoEvolucao data={iggHistory} />
                 </CardContent>
               </Card>
             </TabsContent>

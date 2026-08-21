@@ -34,7 +34,7 @@ export function InactivityGuard() {
 
   // Força logout e redireciona para a tela de login
   const handleForceLogout = useCallback(
-    async (reason: 'inactivity' | 'expired') => {
+    async (reason: 'inactivity' | 'expired' | 'session') => {
       if (isLoggingOutRef.current) return;
       isLoggingOutRef.current = true;
 

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getViaHeatmapData } from '@/lib/actions/heatmap-data';
 import HeatmapClient from './heatmap-client';
+import prisma from '@/lib/prisma';
 
 // Se estiver usando o singleton: import prisma from '@/lib/prisma';
 // 1. Definimos o tipo esperado localmente para fazer o cast
