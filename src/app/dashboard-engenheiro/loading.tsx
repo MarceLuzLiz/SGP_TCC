@@ -8,6 +8,7 @@ export default function EngenheiroHomeLoading() {
         <div className="h-4 w-72 bg-muted/60 rounded-md" />
       </div>
 
+
       <div className="grid gap-6 pt-4 md:grid-cols-2">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="flex h-32 flex-col justify-center">
