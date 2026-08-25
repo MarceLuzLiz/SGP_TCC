@@ -71,6 +71,8 @@ export async function GET(req: Request) {
       orderBy: { dataCaptura: 'desc' },
     });
 
+    const lockedPhotosData = fotos.filter((f) => lockedPhotoIds.includes(f.id));
+
     // 5. Retornar Carga Completa
     const syncData = {
       vias,
