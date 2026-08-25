@@ -64,17 +64,21 @@ export async function GET(req: Request) {
     });
     const lockedPhotoIds = [...new Set(lockedFotoLinks.map((link) => link.fotoId))];
 
-    const lockedPhotosData = await prisma.foto.findMany({
-      where: { id: { in: lockedPhotoIds } },
+    // 4. Buscar Fotos de todas as vistorias atribuídas ao usuário
+    const vistoriaIds = vistorias.map((v) => v.id);
+    const fotos = await prisma.foto.findMany({
+      where: { vistoriaId: { in: vistoriaIds } },
+      orderBy: { dataCaptura: 'desc' },
     });
 
-    // 4. Retornar Carga Completa
+    // 5. Retornar Carga Completa
     const syncData = {
       vias,
       trechos,
       vistorias,
       patologias,
       ocorrencias,
+      fotos,
       lockedPhotoIds,
       lockedPhotosData,
     };
