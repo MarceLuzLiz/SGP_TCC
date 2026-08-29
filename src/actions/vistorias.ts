@@ -1,6 +1,6 @@
 'use server';
-import prisma from '@/lib/prisma';
 
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -44,7 +44,7 @@ export async function createVistoria(formData: FormData): Promise<ActionResult> 
 
     return { success: 'Vistoria criada com sucesso!' };
   } catch (error) {
-    console.error(error);
+    console.error('Falha ao criar vistoria:', error);
     return { error: 'Falha ao criar vistoria.' };
   }
 }
@@ -93,6 +93,11 @@ export async function deleteVistoria(vistoriaId: string, trechoId: string): Prom
       return { error: 'Não é possível excluir. Esta vistoria possui relatórios (RFT/RDS) vinculados.' };
     }
 
+    // Exclui as fotos vinculadas antes de excluir a vistoria para respeitar a foreign key
+    await prisma.foto.deleteMany({
+      where: { vistoriaId: vistoriaId },
+    });
+
     await prisma.vistoria.delete({
       where: { id: vistoriaId },
     });
@@ -101,6 +106,6 @@ export async function deleteVistoria(vistoriaId: string, trechoId: string): Prom
     return { success: 'Vistoria excluída com sucesso!' };
   } catch (error) {
     console.error('Falha ao excluir vistoria:', error);
-    return { error: 'Ocorreu um erro no servidor.' };
+    return { error: 'Ocorreu um erro no servidor ao excluir vistoria.' };
   }
 }
