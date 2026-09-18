@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { createRDS } from '@/actions/relatorios';
 import { Info, X } from 'lucide-react';
 import { PhotoSelectorCard } from '@/app/dashboard/_components/PhotoSelectorCard';
+import { toast } from 'sonner';
 
 // CORREÇÃO: Defina a tipagem completa que o PhotoSelectorCard espera
 type FotoComDados = Foto & {
@@ -45,9 +46,10 @@ export function RDSCreator({ vistorias, fotos, trechoId }: RDSCreatorProps) {
     selectedFotos.forEach((fotoId) => formData.append('fotoIds', fotoId));
     startTransition(async () => {
       const result = await createRDS(formData);
-      if (result.error) { alert(`Erro: ${result.error}`); } 
-      else {
-        alert(result.success);
+      if (result.error) { 
+        toast.error(`Erro: ${result.error}`); 
+      } else {
+        toast.success(result.success || 'RDS criado com sucesso!');
         formRef.current?.reset();
         setSelectedVistoria('');
         setSelectedFotos([]);

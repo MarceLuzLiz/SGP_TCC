@@ -3,19 +3,21 @@
 
 import { useState, useRef, useTransition } from 'react';
 import { createVistoria } from '@/actions/vistorias';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function CreateVistoriaButton({ trechoId }: { trechoId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  const handleAction = (formData: FormData) => { // Remova async daqui
-    startTransition(async () => { // Envolva a lógica em startTransition
+  const handleAction = (formData: FormData) => {
+    startTransition(async () => {
       const result = await createVistoria(formData);
       if (result.error) {
-        alert(result.error);
+        toast.error(result.error);
       } else {
+        toast.success('Vistoria registrada com sucesso!');
         setIsOpen(false);
         formRef.current?.reset();
       }
@@ -26,59 +28,82 @@ export function CreateVistoriaButton({ trechoId }: { trechoId: string }) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+        className="flex items-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-medium px-4 py-2 text-sm shadow-xs transition-colors"
       >
         <CalendarPlus size={18} />
         Nova Vistoria
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500/60 bg-opacity-50">
-          <div className="w-full max-w-lg rounded-lg bg-white p-6">
-            <h2 className="mb-4 text-xl font-bold">Registrar Nova Vistoria</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Registrar Nova Vistoria
+              </h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
             <form ref={formRef} action={handleAction}>
-              <fieldset disabled={isPending}>
-              <input type="hidden" name="trechoId" value={trechoId} />
-              
-              <div className="mb-4">
-                <label htmlFor="dataVistoria" className="mb-2 block text-sm font-medium text-gray-700">
-                  Data da Vistoria
-                </label>
-                <input
-                  type="date"
-                  id="dataVistoria"
-                  name="dataVistoria"
-                  required
-                  className="w-full rounded-md border border-gray-300 p-2"
-                />
-              </div>
+              <fieldset disabled={isPending} className="space-y-4">
+                <input type="hidden" name="trechoId" value={trechoId} />
 
-              <div className="mb-6">
-                <label htmlFor="motivo" className="mb-2 block text-sm font-medium text-gray-700">
-                  Motivo
-                </label>
-                <input
-                  type="text"
-                  id="motivo"
-                  name="motivo"
-                  placeholder="Ex: Vistoria de rotina"
-                  required
-                  className="w-full rounded-md border border-gray-300 p-2"
-                />
-              </div>
+                <div>
+                  <label
+                    htmlFor="dataVistoria"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+                  >
+                    Data da Vistoria
+                  </label>
+                  <input
+                    type="date"
+                    id="dataVistoria"
+                    name="dataVistoria"
+                    required
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
 
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition hover:bg-gray-300"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-75 disabled:cursor-wait">
-                    {isPending ? 'Salvar' : 'Salvar'}
+                <div>
+                  <label
+                    htmlFor="motivo"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+                  >
+                    Motivo / Descrição
+                  </label>
+                  <input
+                    type="text"
+                    id="motivo"
+                    name="motivo"
+                    placeholder="Ex: Vistoria técnica de rotina"
+                    required
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Cancelar
                   </button>
-              </div>
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="flex items-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-xs font-semibold shadow-xs transition-colors disabled:opacity-60"
+                  >
+                    {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {isPending ? 'Salvando...' : 'Salvar Vistoria'}
+                  </button>
+                </div>
               </fieldset>
             </form>
           </div>

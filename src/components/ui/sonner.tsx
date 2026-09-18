@@ -26,6 +26,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-teal-600 group-[.toast]:text-white",
           cancelButton:
             "group-[.toast]:bg-slate-700 group-[.toast]:text-white",
+          closeButton:
+            "!opacity-85 hover:!opacity-100 !bg-white/15 hover:!bg-white/30 !text-white !border-white/25 !left-auto !right-2.5 !top-2.5 !transform-none !transition-all",
           success:
             "group-[.toaster]:border-emerald-500/40 group-[.toast]:text-white",
           error:

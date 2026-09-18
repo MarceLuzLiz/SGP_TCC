@@ -66,9 +66,9 @@ export function IggGeneratorCard({ trechoId, vistorias }: IggGeneratorCardProps)
           Selecione uma vistoria aprovada para gerar o relatório IGG deste trecho.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4 sm:flex-row">
+      <CardContent className="flex flex-col gap-3">
         <Select value={selectedVistoria} onValueChange={setSelectedVistoria}>
-          <SelectTrigger className="w-full sm:w-[280px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Selecione a data da vistoria" />
           </SelectTrigger>
           <SelectContent>
@@ -87,6 +87,7 @@ export function IggGeneratorCard({ trechoId, vistorias }: IggGeneratorCardProps)
         <Button 
           onClick={handleDownload} 
           disabled={!selectedVistoria || isGenerating || vistorias.length === 0}
+          className="w-full"
         >
           {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           Baixar Relatório

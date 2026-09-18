@@ -49,9 +49,40 @@ const styles = StyleSheet.create({
 
   // Grid de Fotos
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', marginBottom: 10, borderWidth: 1, borderColor: '#ddd', padding: 5, height: 230 },
-  image: { width: '100%', height: 140, objectFit: 'cover', marginBottom: 5 },
-  cardContent: { fontSize: 9 },
+  card: { 
+    width: '48%', 
+    marginBottom: 12, 
+    borderWidth: 1, 
+    borderColor: '#cbd5e1', 
+    borderRadius: 4, 
+    padding: 6, 
+    minHeight: 225, 
+    backgroundColor: '#ffffff',
+    flexDirection: 'column',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: 135,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  image: { 
+    width: '100%', 
+    height: '100%', 
+    objectFit: 'contain',
+  },
+  cardContent: { 
+    fontSize: 9, 
+    flex: 1, 
+    flexDirection: 'column', 
+    justifyContent: 'space-between' 
+  },
   
   footer: { position: 'absolute', bottom: 30, left: 30, right: 30, fontSize: 8, textAlign: 'center', color: 'grey', borderTopWidth: 1, borderColor: '#eee', paddingTop: 10 },
 });
@@ -92,20 +123,29 @@ export const RelatorioConsolidadoRFTPDF = ({
               <View style={styles.grid}>
                 {trecho.fotos.map((foto) => (
                   <View key={foto.id} style={styles.card} wrap={false}>
-                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                    <Image style={styles.image} src={foto.imageUrl} />
+                    <View style={styles.imageWrapper}>
+                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                      <Image style={styles.image} src={foto.imageUrl} />
+                    </View>
                     <View style={styles.cardContent}>
-                      <Text style={{fontWeight: 'bold', marginBottom: 2}}>
-                        {foto.patologia?.classificacaoEspecifica}
-                      </Text>
-                      <Text style={{fontSize: 8}}>
-                        Cód: {foto.patologia?.codigoDnit} | IGG: {foto.patologia?.mapeamentoIgg}
-                      </Text>
-                      <Text style={{marginTop: 4, color: '#444', fontSize: 8}}>
-                        {foto.descricao ? (foto.descricao.length > 70 ? foto.descricao.substring(0, 70) + '...' : foto.descricao) : '-'}
-                      </Text>
-                      <View style={{marginTop: 'auto', flexDirection: 'row', justifyContent: 'space-between'}}>
-                         <Text style={{fontSize: 7, color: '#888'}}>Estaca: {foto.estaca || 'N/D'}</Text>
+                      <View>
+                        <Text style={{fontWeight: 'bold', fontSize: 9, marginBottom: 2, color: '#0f172a'}}>
+                          {foto.patologia?.classificacaoEspecifica || 'Sem classificação'}
+                        </Text>
+                        <Text style={{fontSize: 7.5, color: '#475569'}}>
+                          Cód: {foto.patologia?.codigoDnit || 'N/A'} | IGG: {foto.patologia?.mapeamentoIgg || 'N/A'}
+                        </Text>
+                        <Text style={{marginTop: 3, color: '#334155', fontSize: 7.5, lineHeight: 1.2}}>
+                          {foto.descricao ? (foto.descricao.length > 70 ? foto.descricao.substring(0, 70) + '...' : foto.descricao) : '-'}
+                        </Text>
+                      </View>
+                      <View style={{marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <Text style={{fontSize: 7, color: '#64748b'}}>
+                          {new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}
+                        </Text>
+                        <Text style={{fontSize: 7, fontWeight: 'bold', color: '#0f766e'}}>
+                          Estaca: {foto.estaca || 'N/D'}
+                        </Text>
                       </View>
                     </View>
                   </View>

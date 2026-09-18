@@ -9,6 +9,7 @@ import { saveAs } from 'file-saver';
 import { GalleryFilter } from '@/app/dashboard/_components/GalleryFilter';
 import { X, CheckCircle, Download, Trash2, FilePenLine, Tag, CameraOff, Info, MapPin, Calendar, SquareDashed, FlagTriangleRight } from 'lucide-react';
 import { deleteFoto, updateFotoDetails } from '@/actions/fotos';
+import { toast } from 'sonner';
 
 // Tipagem completa para garantir que os objetos de relação estão presentes
 type FotoComDados = Foto & {
@@ -92,7 +93,7 @@ export function PhotoGrid({ initialFotos, trechoId, allPatologias, allRdsOcorren
 
     } catch (error) {
       console.error("Erro ao criar o arquivo zip:", error);
-      alert("Ocorreu um erro ao preparar as fotos para download.");
+      toast.error("Ocorreu um erro ao preparar as fotos para download.");
     } finally {
       setIsZipping(false);
       setDownloadSelection([]);
@@ -100,12 +101,12 @@ export function PhotoGrid({ initialFotos, trechoId, allPatologias, allRdsOcorren
   };
 
   const handleDelete = async (fotoId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.')) {
+    if (confirm('Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.')) {
       const result = await deleteFoto(fotoId, trechoId);
       if (result.error) {
-        alert(`Erro: ${result.error}`);
+        toast.error(`Erro: ${result.error}`);
       } else {
-        alert(result.success);
+        toast.success(result.success || 'Foto excluída com sucesso!');
         closeModal();
       }
     }
@@ -114,9 +115,9 @@ export function PhotoGrid({ initialFotos, trechoId, allPatologias, allRdsOcorren
   const handleUpdateAction = async (formData: FormData) => {
     const result = await updateFotoDetails(formData);
     if (result.error) {
-      alert(`Erro: ${result.error}`);
+      toast.error(`Erro: ${result.error}`);
     } else {
-      alert(result.success);
+      toast.success(result.success || 'Detalhes da foto atualizados com sucesso!');
       if (result.updatedFoto) {
         setSelectedFoto(result.updatedFoto);
       }
@@ -132,9 +133,9 @@ export function PhotoGrid({ initialFotos, trechoId, allPatologias, allRdsOcorren
   return (
     <>
       {downloadSelection.length > 0 && (
-        <div className="sticky top-20 z-40 mb-6 flex items-center justify-between gap-4 rounded-lg bg-blue-600 p-3 text-white shadow-lg">
+        <div className="sticky top-20 z-40 mb-6 flex items-center justify-between gap-4 rounded-2xl bg-teal-700 dark:bg-teal-800 p-3.5 text-white shadow-xl animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2">
-            <button onClick={() => setDownloadSelection([])} className="p-2 hover:bg-blue-700 rounded-full"><X size={20} /></button>
+            <button onClick={() => setDownloadSelection([])} className="p-1.5 hover:bg-teal-800 rounded-full transition-colors"><X size={18} /></button>
             <span className="font-semibold">{downloadSelection.length} foto(s) selecionada(s)</span>
           </div>
           <button

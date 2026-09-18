@@ -2,10 +2,9 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight } from 'lucide-react';
-import { PhotoGrid } from './_components/PhotoGrid'; // Importa o componente local
+import { ChevronLeft } from 'lucide-react';
+import { PhotoGrid } from './_components/PhotoGrid';
 
-// Esta é a sua função de busca de dados, perfeita para esta página
 async function getGalleryData(
   trechoId: string,
   from?: string,
@@ -58,7 +57,6 @@ async function getGalleryData(
   return { trecho, allPatologias, allRdsOcorrencias };
 }
 
-// Usando a sua convenção do Next 15.5
 export default async function GaleriaPage({
   params,
   searchParams,
@@ -86,21 +84,24 @@ export default async function GaleriaPage({
   if (!trecho) notFound();
 
   return (
-    <div>
-      <nav className="mb-6 flex items-center text-sm text-gray-500">
-        {/* --- CORREÇÃO DO LINK --- */}
-        <Link
-          href={`/dashboard-engenheiro/trechos/${resolvedParams.trechoId}`}
-          className="hover:underline"
-        >
-          {trecho.nome}
-        </Link>
-        <ChevronRight className="mx-2 h-4 w-4" />
-        <span className="font-semibold text-gray-700">Galeria</span>
-      </nav>
+    <div className="space-y-6">
+      <Link
+        href={`/dashboard-engenheiro/trechos/${resolvedParams.trechoId}`}
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="mr-2 h-4 w-4" />
+        Voltar para {trecho.nome}
+      </Link>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Galeria de Fotos</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Galeria de Fotos
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Trecho: {trecho.nome} ({trecho.fotos.length} fotos encontradas)
+          </p>
+        </div>
       </div>
 
       <PhotoGrid

@@ -140,10 +140,41 @@
   color: #e9d5ff !important;
 }
 
+/* Botão 'X' de Fechar do Toast Sonner */
 [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
-  background: rgba(255, 255, 255, 0.15) !important;
+  position: absolute !important;
+  left: auto !important;
+  right: 10px !important;
+  top: 10px !important;
+  transform: none !important;
+  opacity: 0.85 !important;
+  background: rgba(255, 255, 255, 0.16) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: 9999px !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+  z-index: 50 !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  transform: scale(1.08) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] svg {
+  width: 12px !important;
+  height: 12px !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.2px !important;
+  display: block !important;
 }
 
 /* Efeito de Gradiente em Movimento Contínuo para a Barra de Carregamento */

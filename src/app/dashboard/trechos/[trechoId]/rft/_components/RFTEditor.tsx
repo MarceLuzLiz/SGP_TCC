@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { updateRFT } from '@/actions/relatorios';
 import { X } from 'lucide-react';
 import { PhotoSelectorCard } from '@/app/dashboard/_components/PhotoSelectorCard';
+import { toast } from 'sonner';
 
 // CORREÇÃO: Defina a tipagem completa que o PhotoSelectorCard espera
 type FotoComDados = Foto & {
@@ -38,9 +39,9 @@ export function RFTEditor({ relatorio, fotosDaVistoria, trechoId }: RFTEditorPro
     startTransition(async () => {
       const result = await updateRFT(formData);
       if (result.error) {
-        alert(`Erro: ${result.error}`);
+        toast.error(`Erro: ${result.error}`);
       } else {
-        alert(result.success);
+        toast.success(result.success || 'RFT atualizado com sucesso!');
         router.push(`/dashboard/trechos/${trechoId}/rft`);
       }
     });
@@ -73,10 +74,10 @@ export function RFTEditor({ relatorio, fotosDaVistoria, trechoId }: RFTEditorPro
         </div>
 
         <div className="flex items-center gap-4">
-          <button type="submit" disabled={selectedFotos.length === 0 || isPending} className="rounded-lg bg-blue-600 px-6 py-3 text-white transition hover:bg-blue-700 disabled:bg-gray-400">
+          <button type="submit" disabled={selectedFotos.length === 0 || isPending} className="rounded-xl bg-teal-600 px-6 py-3 text-white font-semibold shadow-xs transition hover:bg-teal-700 disabled:opacity-50">
             {isPending ? 'Salvando...' : `Salvar Alterações (${selectedFotos.length} fotos)`}
           </button>
-          <Link href={`/dashboard/trechos/${trechoId}/rft`} className="text-sm text-gray-600 hover:underline">
+          <Link href={`/dashboard/trechos/${trechoId}/rft`} className="text-sm text-slate-600 dark:text-slate-400 hover:underline">
             Cancelar
           </Link>
         </div>

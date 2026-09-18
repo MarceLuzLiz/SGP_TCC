@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { updateRDS } from '@/actions/relatorios';
 import { X } from 'lucide-react';
 import { PhotoSelectorCard } from '@/app/dashboard/_components/PhotoSelectorCard';
+import { toast } from 'sonner';
 
 // CORREÇÃO: Defina a tipagem completa que o PhotoSelectorCard espera
 type FotoComDados = Foto & {
@@ -48,9 +49,9 @@ export function RDSEditor({ relatorio, fotosDaVistoria, trechoId }: RDSEditorPro
     startTransition(async () => {
       const result = await updateRDS(formData);
       if (result.error) {
-        alert(`Erro: ${result.error}`);
+        toast.error(`Erro: ${result.error}`);
       } else {
-        alert(result.success);
+        toast.success(result.success || 'RDS atualizado com sucesso!');
         router.push(`/dashboard/trechos/${trechoId}/rds`);
       }
     });

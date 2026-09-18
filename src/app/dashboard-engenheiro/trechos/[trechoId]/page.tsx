@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, CheckSquare, BarChart3, Images, History, AlertTria
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { TrechoDetailMap } from './_components/trecho-detail-map';
 import { IggDisplay } from './_components/igg-display';
 import { TrechoApprovalList } from './_components/trecho-approval-list';
@@ -132,6 +133,13 @@ export default async function TrechoDetailPage(
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/dashboard-engenheiro/trechos/${trecho.id}/galeria`}>
+              <Images className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              Galeria de Fotos
+            </Link>
+          </Button>
+
           <EditTrechoDialog
             trecho={trecho}
             showIconOnly={false}

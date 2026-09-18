@@ -62,20 +62,37 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    marginBottom: 20,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 5,
-    height: 250,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
+    padding: 6,
+    minHeight: 235,
+    backgroundColor: '#ffffff',
+    flexDirection: 'column',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: 140,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   image: {
     width: '100%',
-    height: 160,
-    objectFit: 'cover',
-    marginBottom: 5,
+    height: '100%',
+    objectFit: 'contain',
   },
   cardContent: {
     fontSize: 9,
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   label: {
     fontWeight: 'bold',
@@ -144,35 +161,42 @@ export const RelatorioPDF = ({
           <View style={styles.grid}>
             {chunk.map((foto: FotoCompleta) => (
               <View key={foto.id} style={styles.card}>
-                {/* --- CORREÇÃO 2: Adicionado prop 'alt' --- */}
-                {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <Image 
-                  style={styles.image} 
-                  src={foto.imageUrl} 
-                />
+                <View style={styles.imageWrapper}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image 
+                    style={styles.image} 
+                    src={foto.imageUrl} 
+                  />
+                </View>
                 
                 <View style={styles.cardContent}>
-                  <Text style={{fontWeight: 'bold', marginBottom: 2}}>
-                    {foto.tipo === 'RFT' 
-                      ? foto.patologia?.classificacaoEspecifica 
-                      : foto.rdsOcorrencia?.ocorrencia}
-                  </Text>
-                  
-                  {foto.tipo === 'RFT' && (
-                    <Text style={{fontSize: 8}}>
-                      Cód: {foto.patologia?.codigoDnit} | IGG: {foto.patologia?.mapeamentoIgg}
+                  <View>
+                    <Text style={{fontWeight: 'bold', fontSize: 9, marginBottom: 2, color: '#0f172a'}}>
+                      {foto.tipo === 'RFT' 
+                        ? foto.patologia?.classificacaoEspecifica 
+                        : foto.rdsOcorrencia?.ocorrencia}
                     </Text>
-                  )}
+                    
+                    {foto.tipo === 'RFT' && (
+                      <Text style={{fontSize: 7.5, color: '#475569'}}>
+                        Cód: {foto.patologia?.codigoDnit} | IGG: {foto.patologia?.mapeamentoIgg}
+                      </Text>
+                    )}
+                    
+                    <Text style={{marginTop: 3, color: '#334155', fontSize: 7.5, lineHeight: 1.2}}>
+                      {foto.descricao || 'Sem observações.'}
+                    </Text>
+                  </View>
                   
-                  <Text style={{marginTop: 4, color: '#444'}}>
-                    {foto.descricao || 'Sem observações.'}
-                  </Text>
-                  
-                  <View style={{marginTop: 'auto', flexDirection: 'row', justifyContent: 'space-between'}}>
-                     <Text style={{fontSize: 7, color: '#888'}}>
+                  <View style={{marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                     <Text style={{fontSize: 7, color: '#64748b'}}>
                        {new Date(foto.dataCaptura).toLocaleString('pt-BR')}
                      </Text>
-                     {foto.estaca && <Text style={{fontSize: 7, color: '#888'}}>Estaca: {foto.estaca}</Text>}
+                     {foto.estaca && (
+                       <Text style={{fontSize: 7, fontWeight: 'bold', color: '#0f766e'}}>
+                         Estaca: {foto.estaca}
+                       </Text>
+                     )}
                   </View>
                 </View>
               </View>

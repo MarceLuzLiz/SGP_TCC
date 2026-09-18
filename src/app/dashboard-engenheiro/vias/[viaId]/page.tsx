@@ -9,7 +9,6 @@ import {
   PieChart,
   FileSpreadsheet,
   FileText,
-  Flame,
   AlertTriangle,
 } from 'lucide-react';
 import {
@@ -102,13 +101,6 @@ export default async function ViaDetailPage(
 
         <div className="flex items-center gap-2 flex-wrap">
           <EditViaDialog via={via} />
-
-          <Button asChild variant="outline" className="gap-2">
-            <Link href={`/dashboard-engenheiro/vias/${via.id}/mapa-calor`}>
-              <Flame className="h-4 w-4 text-orange-500" />
-              Mapa de Calor
-            </Link>
-          </Button>
 
           {!via.isSuspended && (
             <RequestExclusionDialog

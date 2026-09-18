@@ -5,8 +5,9 @@ import { useState, useTransition, useMemo } from 'react';
 import type { Vistoria, Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import Image from 'next/image';
 import { createRFT } from '@/actions/relatorios';
-import { Info, X } from 'lucide-react';
+import { Info, X, Loader2 } from 'lucide-react';
 import { PhotoSelectorCard } from '@/app/dashboard/_components/PhotoSelectorCard';
+import { toast } from 'sonner';
 
 // CORREÇÃO: Defina a tipagem completa que o PhotoSelectorCard espera
 type FotoComDados = Foto & {
@@ -44,9 +45,10 @@ export function RFTCreator({ vistorias, fotos, trechoId }: RFTCreatorProps) {
     selectedFotos.forEach((fotoId) => formData.append('fotoIds', fotoId));
     startTransition(async () => {
       const result = await createRFT(formData);
-      if (result.error) { alert(`Erro: ${result.error}`); } 
-      else {
-        alert(result.success);
+      if (result.error) { 
+        toast.error(`Erro: ${result.error}`); 
+      } else {
+        toast.success(result.success || 'RFT criado com sucesso!');
         setSelectedVistoria('');
         setSelectedFotos([]);
       }

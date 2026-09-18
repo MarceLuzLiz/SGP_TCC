@@ -57,9 +57,39 @@ const styles = StyleSheet.create({
 
   // Fotos
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 },
-  card: { width: '48%', marginBottom: 10, borderWidth: 1, borderColor: '#ddd', padding: 5, height: 230 },
-  image: { width: '100%', height: 140, objectFit: 'cover', marginBottom: 5 },
-  cardContent: { fontSize: 9 },
+  imageWrapper: {
+    width: '100%',
+    height: 135,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  card: {
+    width: '48%',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
+    padding: 6,
+    minHeight: 225,
+    flexDirection: 'column',
+    backgroundColor: '#ffffff',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+  },
+  cardContent: {
+    fontSize: 9,
+    flex: 1,
+    justifyContent: 'space-between',
+  },
 
   footer: { position: 'absolute', bottom: 30, left: 30, right: 30, fontSize: 8, textAlign: 'center', color: 'grey', borderTopWidth: 1, borderColor: '#eee', paddingTop: 10 },
 });
@@ -155,11 +185,15 @@ export const RelatorioIggTrechoPDF = (props: DadosIggTrechoPDF) => {
       <View style={styles.grid}>
           {props.fotos.map((foto) => (
             <View key={foto.id} style={styles.card} wrap={false}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              <Image style={styles.image} src={foto.imageUrl} />
+              <View style={styles.imageWrapper}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image style={styles.image} src={foto.imageUrl} />
+              </View>
               <View style={styles.cardContent}>
-                <Text style={{fontWeight: 'bold', marginBottom: 2}}>{foto.patologia?.classificacaoEspecifica}</Text>
-                <Text style={{fontSize: 8}}>Cód: {foto.patologia?.codigoDnit} | IGG: {foto.patologia?.mapeamentoIgg}</Text>
+                <View>
+                  <Text style={{fontWeight: 'bold', marginBottom: 2}}>{foto.patologia?.classificacaoEspecifica}</Text>
+                  <Text style={{fontSize: 8}}>Cód: {foto.patologia?.codigoDnit} | IGG: {foto.patologia?.mapeamentoIgg}</Text>
+                </View>
                 <Text style={{fontSize: 7, color: '#888', marginTop: 4}}>Estaca: {foto.estaca || 'N/D'}</Text>
               </View>
             </View>

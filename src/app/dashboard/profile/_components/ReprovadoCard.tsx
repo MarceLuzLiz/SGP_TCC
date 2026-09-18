@@ -2,11 +2,11 @@
 'use client';
 
 import type { Relatorio, Trecho, Via, Vistoria } from '@prisma/client';
-import Link from 'next/link'; // Manter o import do Link para o futuro
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { FilePenLine, Trash2 } from 'lucide-react';
+import { FilePenLine, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { deleteRelatorio } from '@/actions/relatorios';
+import { toast } from 'sonner';
 
 type RelatorioCompleto = Relatorio & {
   trecho: Trecho & { via: Via };
@@ -25,18 +25,20 @@ export function ReprovadoCard({ relatorio }: ReprovadoCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (window.confirm(`Tem certeza que deseja excluir este ${relatorio.tipo}?`)) {
+    if (confirm(`Tem certeza que deseja excluir este ${relatorio.tipo}?`)) {
       startTransition(async () => {
         const result = await deleteRelatorio(relatorio.id, relatorio.trechoId, relatorio.tipo);
-        if (result.error) alert(`Erro: ${result.error}`);
-        else alert(result.success);
+        if (result.error) {
+          toast.error(`Erro: ${result.error}`);
+        } else {
+          toast.success(result.success || `${relatorio.tipo} excluído com sucesso!`);
+        }
       });
     }
   };
 
-  // NOVO: Função específica para o botão de correção
   const handleCorrect = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o clique acione o onClick do card principal
+    e.stopPropagation();
     const editPath = `/dashboard/trechos/${relatorio.trechoId}/${relatorio.tipo.toLowerCase()}/${relatorio.id}/edit`;
     router.push(editPath);
   };
@@ -47,30 +49,41 @@ export function ReprovadoCard({ relatorio }: ReprovadoCardProps) {
   return (
     <div
       onClick={() => router.push(detailPath)}
-      className="block group p-3 bg-red-50 border-l-4 border-red-500 rounded-r-lg hover:bg-red-100 transition cursor-pointer"
+      className="group block p-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/30 hover:border-rose-400 dark:hover:border-rose-800 transition-all cursor-pointer"
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="font-semibold text-red-800">Seu {relatorio.tipo} de {new Date(relatorio.createdAt).toLocaleDateString('pt-BR')} foi reprovado.</p>
-          <p className="text-xs text-gray-500">{relatorio.trecho.via.name} - {relatorio.trecho.nome}</p>
-          <p className="text-sm text-red-700 mt-2"><strong>Motivo:</strong> {relatorio.motivoReprovacao}</p>
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm text-rose-900 dark:text-rose-200">
+              Seu {relatorio.tipo} de {new Date(relatorio.createdAt).toLocaleDateString('pt-BR')} foi reprovado
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {relatorio.trecho.via.name} — {relatorio.trecho.nome}
+            </p>
+            {relatorio.motivoReprovacao && (
+              <p className="text-xs text-rose-800 dark:text-rose-300 mt-2 bg-rose-100/60 dark:bg-rose-900/40 p-2 rounded-lg">
+                <span className="font-bold">Motivo:</span> {relatorio.motivoReprovacao}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* MUDANÇA: O ícone de correção agora é um botão com um onClick */}
+
+        <div className="flex items-center space-x-1 shrink-0">
           <button
             onClick={handleCorrect}
-            className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
+            className="p-2 text-slate-600 dark:text-slate-300 hover:text-purple-700 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors shadow-2xs"
             title="Corrigir"
           >
-            <FilePenLine size={18} />
+            <FilePenLine size={16} />
           </button>
           <button
             onClick={handleDelete}
             disabled={isPending}
-            className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+            className="p-2 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors shadow-2xs disabled:opacity-50"
             title="Excluir"
           >
-            <Trash2 size={18} />
+            {isPending ? <Loader2 size={16} className="animate-spin text-rose-600" /> : <Trash2 size={16} />}
           </button>
         </div>
       </div>

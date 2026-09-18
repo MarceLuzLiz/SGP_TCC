@@ -90,20 +90,37 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    marginBottom: 20,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 5,
-    height: 250,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
+    padding: 6,
+    minHeight: 230,
+    backgroundColor: '#ffffff',
+    flexDirection: 'column',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: 135,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
   },
   image: {
     width: '100%',
-    height: 150, // Um pouco menor para compensar o cabeçalho maior
-    objectFit: 'cover',
-    marginBottom: 5,
+    height: '100%',
+    objectFit: 'contain',
   },
   cardContent: {
     fontSize: 9,
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   footer: {
     position: 'absolute',
@@ -174,35 +191,40 @@ export const RelatorioRDSPDF = ({
                 <Text style={styles.rdsTextLabel}>Saída:</Text> {dadosRDS.horarioSaida || 'N/A'}
               </Text>
             </View>
-            
-            {/* Exibe anotações curtas se houver, apenas na primeira página ou truncadas */}
-            {/* Para manter o layout fixo, vamos omitir textos longos no header ou mostrar apenas uma linha */}
           </View>
 
-          {/* GRID 2x2 (Igual ao RFT) */}
+          {/* GRID 2x2 */}
           <View style={styles.grid}>
             {chunk.map((foto: FotoCompleta) => (
               <View key={foto.id} style={styles.card}>
-                {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <Image 
-                  style={styles.image} 
-                  src={foto.imageUrl} 
-                />
+                <View style={styles.imageWrapper}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image 
+                    style={styles.image} 
+                    src={foto.imageUrl} 
+                  />
+                </View>
                 <View style={styles.cardContent}>
-                  <Text style={{fontWeight: 'bold', marginBottom: 2}}>
-                    {foto.rdsOcorrencia?.ocorrencia || 'Ocorrência Geral'}
-                  </Text>
-                  <Text style={{fontSize: 8, color: '#666'}}>
-                    Categoria: {foto.rdsOcorrencia?.categoria}
-                  </Text>
-                  <Text style={{marginTop: 4, color: '#444', height: 35}}>
-                    {foto.descricao ? (foto.descricao.length > 80 ? foto.descricao.substring(0, 80) + '...' : foto.descricao) : 'Sem observações.'}
-                  </Text>
-                  <View style={{marginTop: 'auto', flexDirection: 'row', justifyContent: 'space-between'}}>
-                     <Text style={{fontSize: 7, color: '#888'}}>
+                  <View>
+                    <Text style={{fontWeight: 'bold', fontSize: 9, marginBottom: 2, color: '#0f172a'}}>
+                      {foto.rdsOcorrencia?.ocorrencia || 'Ocorrência Geral'}
+                    </Text>
+                    <Text style={{fontSize: 7.5, color: '#475569'}}>
+                      Categoria: {foto.rdsOcorrencia?.categoria || 'N/A'}
+                    </Text>
+                    <Text style={{marginTop: 3, color: '#334155', fontSize: 7.5, lineHeight: 1.2}}>
+                      {foto.descricao ? (foto.descricao.length > 80 ? foto.descricao.substring(0, 80) + '...' : foto.descricao) : 'Sem observações.'}
+                    </Text>
+                  </View>
+                  <View style={{marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                     <Text style={{fontSize: 7, color: '#64748b'}}>
                        {new Date(foto.dataCaptura).toLocaleString('pt-BR')}
                      </Text>
-                     {foto.estaca && <Text style={{fontSize: 7, color: '#888'}}>Estaca: {foto.estaca}</Text>}
+                     {foto.estaca && (
+                       <Text style={{fontSize: 7, fontWeight: 'bold', color: '#0f766e'}}>
+                         Estaca: {foto.estaca}
+                       </Text>
+                     )}
                   </View>
                 </View>
               </View>
