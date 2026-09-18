@@ -69,7 +69,8 @@ export function CreateConsolidadoForm({
         toast.error(result.error);
       } else {
         toast.success(result.success);
-        router.push(`/dashboard-engenheiro/vias/${viaId}`);
+        const tipoRota = tipoConsolidado === 'RFT_VIA' ? 'rft' : 'rds';
+        router.push(`/dashboard-engenheiro/vias/${viaId}/relatorios-via/${tipoRota}`);
       }
     });
   };
