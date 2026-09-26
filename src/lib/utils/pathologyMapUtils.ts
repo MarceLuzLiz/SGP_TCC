@@ -69,7 +69,7 @@ export function groupPathologies(
   for (const item of items) {
     if (!item.latitude || !item.longitude || !item.patologia?.codigoDnit) continue;
 
-    let matchedGroup = groups.find((g) => {
+    const matchedGroup = groups.find((g) => {
       // 1. Coordenadas idênticas
       if (Math.abs(g.lat - item.latitude) < 0.00002 && Math.abs(g.lng - item.longitude) < 0.00002) {
         return true;
