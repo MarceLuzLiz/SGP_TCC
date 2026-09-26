@@ -128,6 +128,15 @@ export async function getViaDetails(viaId: string) {
                 user: { // Pega o fiscal que fez a vistoria
                   select: { name: true },
                 },
+                relatorios: {
+                  where: { tipo: 'RFT', statusAprovacao: 'APROVADO' },
+                  select: {
+                    id: true,
+                    tipo: true,
+                    statusAprovacao: true,
+                    fotos: { select: { fotoId: true } },
+                  },
+                },
               },
               orderBy: {
                 dataVistoria: 'desc',
@@ -211,8 +220,17 @@ export async function getTrechoDetails(trechoId: string) {
           include: {
             user: { select: { name: true } },
             _count: { select: { fotos: true } },
+            relatorios: {
+              where: { tipo: 'RFT', statusAprovacao: 'APROVADO' },
+              select: {
+                id: true,
+                tipo: true,
+                statusAprovacao: true,
+                fotos: { select: { fotoId: true } },
+              },
+            },
           },
-          orderBy: { dataVistoria: 'asc' }, // Corrigido para dataVistoria
+          orderBy: { dataVistoria: 'desc' },
         },
       },
     });

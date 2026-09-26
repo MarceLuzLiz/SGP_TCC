@@ -176,6 +176,7 @@ export default async function TrechoDetailPage(
                 kmFinal={trecho.kmFinal}
                 cor={trecho.cor}
                 fotos={trecho.fotos}
+                vistorias={trecho.vistorias}
               />
             </CardContent>
           </Card>

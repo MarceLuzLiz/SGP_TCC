@@ -29,8 +29,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Milestone } from 'lucide-react';
+import { Loader2, Milestone, AlertTriangle } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import {
+  PathologyMarkerItem,
+  groupPathologies,
+  generateBalloonHtml,
+  generatePopupHtml,
+} from '@/lib/utils/pathologyMapUtils';
 
 const containerStyle = {
   width: '100%',
@@ -69,10 +75,78 @@ export function ViaDetailMap({
   const [isMapReady, setIsMapReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [showEstacas, setShowEstacas] = useState(false);
+  const [showPatologias, setShowPatologias] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [trechoNome, setTrechoNome] = useState('');
   const [trechoCor, setTrechoCor] = useState('#3b82f6');
+
+  // Filtra as patologias da vistoria mais recente COM RELATÓRIO RFT APROVADO de cada trecho da via
+  const patologiasRecentes = useMemo(() => {
+    if (!trechosExistentes || trechosExistentes.length === 0) return [];
+
+    const todasPatologiasRecentes: PathologyMarkerItem[] = [];
+
+    trechosExistentes.forEach((trecho: any) => {
+      const fotosTrecho = trecho.fotos || [];
+      const vistoriasTrecho = trecho.vistorias || [];
+
+      // 1. Considera apenas vistorias que possuem ao menos um relatório RFT APROVADO
+      const vistoriasComRftAprovado = vistoriasTrecho.filter((v: any) =>
+        v.relatorios && v.relatorios.some((r: any) => r.tipo === 'RFT' && r.statusAprovacao === 'APROVADO')
+      );
+
+      if (vistoriasComRftAprovado.length === 0) return;
+
+      // 2. Ordena da mais recente para a mais antiga
+      const vistoriasOrdenadas = [...vistoriasComRftAprovado].sort(
+        (a: any, b: any) => new Date(b.dataVistoria).getTime() - new Date(a.dataVistoria).getTime()
+      );
+
+      const latestVistoria = vistoriasOrdenadas[0];
+
+      // 3. IDs das fotos do RFT aprovado
+      const rftAprovado = latestVistoria.relatorios?.find(
+        (r: any) => r.tipo === 'RFT' && r.statusAprovacao === 'APROVADO'
+      );
+      const approvedPhotoIds = new Set(
+        rftAprovado?.fotos ? rftAprovado.fotos.map((rf: any) => rf.fotoId) : []
+      );
+
+      const fotosDesteTrecho = fotosTrecho
+        .filter((f: any) => {
+          if (!f.patologia || !f.patologia.codigoDnit) return false;
+          if (f.vistoriaId !== latestVistoria.id) return false;
+          if (approvedPhotoIds.size > 0 && !approvedPhotoIds.has(f.id)) return false;
+          return true;
+        })
+        .map((f: any) => ({
+          id: f.id,
+          latitude: f.latitude,
+          longitude: f.longitude,
+          estaca: f.estaca,
+          imageUrl: f.imageUrl,
+          tipo: f.tipo,
+          grauSeveridade: f.grauSeveridade,
+          extensaoM: f.extensaoM,
+          larguraM: f.larguraM,
+          dataCaptura: f.dataCaptura,
+          vistoriaId: f.vistoriaId,
+          vistoriaData: latestVistoria.dataVistoria || f.dataCaptura,
+          trechoNome: trecho.nome,
+          patologia: f.patologia,
+        }));
+
+      todasPatologiasRecentes.push(...fotosDesteTrecho);
+    });
+
+    return todasPatologiasRecentes;
+  }, [trechosExistentes]);
+
+  // Agrupamento inteligente para patologias no mesmo ponto / mesma estaca
+  const pathologyGroups = useMemo(() => {
+    return groupPathologies(patologiasRecentes, 10);
+  }, [patologiasRecentes]);
 
   // Calcula o Km inicial do próximo trecho
   const proximoKmInicial = useMemo(() => {
@@ -233,24 +307,24 @@ export function ViaDetailMap({
         });
       }
 
-      // e) Pins das Fotos
-      fotos.forEach((foto) => {
-        const fotoIcon = L.divIcon({
-          className: 'custom-photo-pin',
-          html: `<div style="background:#0ea5e9; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
+      // e) Balões das Patologias da Vistoria Mais Recente de cada Trecho
+      if (showPatologias) {
+        pathologyGroups.forEach((group) => {
+          const balloonIcon = L.divIcon({
+            className: 'custom-pathology-balloon-wrapper',
+            html: generateBalloonHtml(group),
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          });
+
+          const marker = L.marker([group.lat, group.lng], { icon: balloonIcon }).addTo(lg);
+          marker.bindPopup(generatePopupHtml(group), {
+            maxWidth: 300,
+            minWidth: 230,
+            className: 'custom-pathology-popup',
+          });
         });
-        const marker = L.marker([foto.latitude, foto.longitude], { icon: fotoIcon }).addTo(lg);
-        marker.bindPopup(`
-          <div style="font-family: sans-serif; font-size: 12px; color: #111; max-width: 180px;">
-            <strong>Foto ${foto.tipo}</strong><br/>
-            ${foto.patologia ? `Patologia: ${foto.patologia.classificacaoEspecifica}<br/>` : ''}
-            ${foto.estaca ? `Estaca: ${foto.estaca}<br/>` : ''}
-            <small>${new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}</small>
-          </div>
-        `);
-      });
+      }
     }
 
     updateStaticLayers();
@@ -263,7 +337,8 @@ export function ViaDetailMap({
     isCompleto,
     showEstacas,
     estacasPoints,
-    fotos,
+    showPatologias,
+    pathologyGroups,
   ]);
 
   // 3. Renderizar o MARCADOR DO SLIDER dinamicamente
@@ -329,7 +404,8 @@ export function ViaDetailMap({
       <div className="relative">
         <div ref={mapContainerRef} style={containerStyle} />
 
-        <div className="absolute top-3 right-3 z-[400]">
+        <div className="absolute top-3 right-3 z-[400] flex items-center gap-2">
+          {/* Alternância de Estacas */}
           <Button
             type="button"
             size="sm"
@@ -342,6 +418,28 @@ export function ViaDetailMap({
           >
             <Milestone className="h-3.5 w-3.5" />
             {showEstacas ? 'Ocultar Estacas' : 'Ver Estacas'}
+          </Button>
+
+          {/* Alternância de Balões de Patologias */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setShowPatologias(!showPatologias)}
+            className={`shadow-md text-xs gap-1.5 transition-all ${
+              showPatologias
+                ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-500/20'
+                : 'bg-white/95 text-slate-800 hover:bg-white border border-slate-300 dark:bg-slate-900 dark:text-slate-100'
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {showPatologias ? 'Ocultar Patologias' : 'Ver Patologias'}
+            {patologiasRecentes.length > 0 && (
+              <span className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                showPatologias ? 'bg-amber-800 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              }`}>
+                {patologiasRecentes.length}
+              </span>
+            )}
           </Button>
         </div>
       </div>
