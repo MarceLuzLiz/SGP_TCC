@@ -9,6 +9,7 @@ import { pdf } from '@react-pdf/renderer';
 import { HeatmapPDF } from '@/components/pdf/HeatmapPDF';
 import { toast } from 'sonner';
 import { HeatmapPoint } from '@/lib/actions/heatmap-data';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 interface Coordenada {
   lat: number;
@@ -21,11 +22,12 @@ interface ViaData {
 }
 
 interface HeatmapClientProps {
-    via: ViaData; 
-    heatmapData: HeatmapPoint[];
+  viaId: string;
+  via: ViaData; 
+  heatmapData: HeatmapPoint[];
 }
 
-export default function HeatmapClient({ via, heatmapData }: HeatmapClientProps) {
+export default function HeatmapClient({ viaId, via, heatmapData }: HeatmapClientProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const mapDivRef = useRef<HTMLDivElement>(null);
 
@@ -35,29 +37,15 @@ export default function HeatmapClient({ via, heatmapData }: HeatmapClientProps) 
     toast.info("Gerando imagem do mapa, aguarde...");
 
     try {
-      // Pequeno delay para garantir que o mapa esteja "quieto" antes do print
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(mapDivRef.current, { 
         useCORS: true, 
         scale: 2,
         backgroundColor: '#ffffff',
-        // CORREÇÃO CRÍTICA: onclone
-        // Modificamos a cópia do documento que o html2canvas usa, sem afetar a tela do usuário.
         onclone: (clonedDoc) => {
-          // 1. Removemos todos os <link> de CSS (geralmente o Tailwind/Next.js está aqui)
-          // O Google Maps não precisa deles para renderizar a imagem do mapa.
           const links = clonedDoc.querySelectorAll('link[rel="stylesheet"]');
           links.forEach(link => link.remove());
-
-          // 2. Removemos estilos globais que possam conter oklch nas tags <style>
-          // Nota: O Google Maps injeta seus próprios estilos em <style>. 
-          // Se removermos TUDO, o mapa pode quebrar. Vamos tentar remover apenas os links primeiro.
-          // Se ainda der erro, descomente a linha abaixo para remover styles também (exceto os do Google)
-          // const styles = clonedDoc.querySelectorAll('style');
-          // styles.forEach(s => { if(!s.innerHTML.includes('.gm-')) s.remove(); });
-
-          // 3. Forçamos um estilo inline básico no body do clone para garantir reset
           clonedDoc.body.style.backgroundColor = '#ffffff';
           clonedDoc.body.style.color = '#000000';
         },
@@ -107,6 +95,16 @@ export default function HeatmapClient({ via, heatmapData }: HeatmapClientProps) 
 
   return (
     <div className="space-y-6">
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: via.name, href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'Mapa de Calor' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}`}
+        backLabel="Voltar para a Via"
+      />
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Mapa de Calor: {via.name}</h1>
         <Button onClick={handleDownloadPDF} disabled={isGeneratingPdf}>
@@ -115,7 +113,6 @@ export default function HeatmapClient({ via, heatmapData }: HeatmapClientProps) 
         </Button>
       </div>
 
-      {/* Mantemos os estilos inline de segurança */}
       <div 
         ref={mapDivRef} 
         className="rounded-lg overflow-hidden"

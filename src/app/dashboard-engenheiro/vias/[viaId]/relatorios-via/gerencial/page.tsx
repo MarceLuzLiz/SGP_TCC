@@ -8,16 +8,17 @@ import { notFound } from 'next/navigation';
 import { RelatorioViaFiltro } from '../_components/RelatorioViaFiltro';
 import { DeleteRelatorioViaButton } from '../_components/DeleteRelatorioViaButton';
 import { DownloadGerencialButton } from '@/components/pdf/SmartPdfButtons';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 export default async function GerencialViaListPage({
   params,
   searchParams,
 }: {
   params: Promise<{ viaId: string }>;
-  searchParams: Promise<{ from?: string; to?: string }>; // 2. Aceitar
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { viaId } = await params;
-  const { from, to } = await searchParams; // 3. Ler
+  const { from, to } = await searchParams;
 
   const via = await prisma.via.findUnique({
     where: { id: viaId },
@@ -26,7 +27,6 @@ export default async function GerencialViaListPage({
 
   if (!via) notFound();
 
-  // 4. Criar o 'where' para o filtro
   const where: Prisma.RelatorioViaWhereInput = {
     viaId: viaId,
     tipo: TipoRelatorioVia.GERENCIAL_VIA,
@@ -39,16 +39,26 @@ export default async function GerencialViaListPage({
       endDate.setDate(endDate.getDate() + 1);
       dateFilter.lt = endDate;
     }
-    where.dataReferencia = dateFilter; // Filtra pela data de referência
+    where.dataReferencia = dateFilter;
   }
 
   const relatorios = await prisma.relatorioVia.findMany({
-    where, // 5. Aplicar o filtro
+    where,
     orderBy: { createdAt: 'desc' },
   });
  
   return (
     <div className="space-y-6">
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: via.name, href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'Relatórios Gerenciais' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}`}
+        backLabel="Voltar para a Via"
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Relatórios Gerenciais</h1>
@@ -62,7 +72,6 @@ export default async function GerencialViaListPage({
         </Button>
       </div>
 
-      {/* 6. Adicionar o componente de filtro */}
       <RelatorioViaFiltro />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

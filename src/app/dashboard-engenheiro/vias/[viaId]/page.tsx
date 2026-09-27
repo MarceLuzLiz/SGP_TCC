@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { getViaDetails } from '@/lib/data/engenheiro';
 import { notFound } from 'next/navigation';
 import {
-  ChevronLeft,
   MapPin,
   Route,
   BarChart3,
@@ -25,7 +24,10 @@ import { IggDisplay } from '@/app/dashboard-engenheiro/trechos/[trechoId]/_compo
 import { Button } from '@/components/ui/button';
 import { RequestExclusionDialog } from './_components/RequestExclusionDialog';
 import { EditViaDialog } from './_components/EditViaDialog';
+import { EditViaGeometryDialog } from './_components/EditViaGeometryDialog';
 import { EditTrechoDialog } from './_components/EditTrechoDialog';
+import { EditTrechoGeometryDialog } from './_components/EditTrechoGeometryDialog';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 type Coordenada = { lat: number; lng: number };
 
@@ -50,13 +52,14 @@ export default async function ViaDetailPage(
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/dashboard-engenheiro/vias"
-        className="flex items-center text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Voltar para Vias
-      </Link>
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: via.name },
+        ]}
+        backHref="/dashboard-engenheiro/vias"
+        backLabel="Voltar para Vias"
+      />
 
       {/* AVISO DE VIA SUSPENSA */}
       {via.isSuspended && (
@@ -101,6 +104,11 @@ export default async function ViaDetailPage(
 
         <div className="flex items-center gap-2 flex-wrap">
           <EditViaDialog via={via} />
+          <EditViaGeometryDialog
+            via={{ id: via.id, name: via.name, extensaoKm: via.extensaoKm }}
+            trajeto={trajetoCoords}
+            trechos={via.trechos}
+          />
 
           {!via.isSuspended && (
             <RequestExclusionDialog
@@ -193,6 +201,12 @@ export default async function ViaDetailPage(
                     
                     <div className="flex items-center gap-1 shrink-0">
                       <EditTrechoDialog trecho={trecho} showIconOnly={true} />
+                      <EditTrechoGeometryDialog
+                        trecho={trecho}
+                        trajeto={trajetoCoords}
+                        viaExtensaoKm={via.extensaoKm}
+                        allTrechos={via.trechos}
+                      />
 
                       {trecho.isSuspended ? (
                         <Badge variant="outline" className="text-amber-600 border-amber-400 text-xs">

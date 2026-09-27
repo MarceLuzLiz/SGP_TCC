@@ -3,8 +3,6 @@ import { getViaHeatmapData } from '@/lib/actions/heatmap-data';
 import HeatmapClient from './heatmap-client';
 import prisma from '@/lib/prisma';
 
-// Se estiver usando o singleton: import prisma from '@/lib/prisma';
-// 1. Definimos o tipo esperado localmente para fazer o cast
 type Coordenada = { lat: number; lng: number };
 
 export default async function MapaCalorPage({
@@ -30,11 +28,9 @@ export default async function MapaCalorPage({
 
   return (
     <HeatmapClient
+      viaId={viaId}
       via={{
         name: via.name,
-        // CORREÇÃO AQUI:
-        // Usamos 'as unknown' como intermediário seguro ao invés de 'as any'.
-        // Isso diz ao TS: "Trate isso como desconhecido, e eu garanto que é esse tipo abaixo".
         trajetoJson: via.trajetoJson as unknown as Coordenada[] | string | null
       }}
       heatmapData={heatmapData}

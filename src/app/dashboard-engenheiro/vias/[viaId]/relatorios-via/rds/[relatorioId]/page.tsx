@@ -1,12 +1,9 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGrid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { DownloadConsolidadoRdsButton } from '@/components/pdf/DownloadConsolidadoRdsButton';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 // Interface para os dados JSON do RDS
 interface DadosRDS {
@@ -102,24 +99,26 @@ export default async function RDSConsolidadoPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center text-sm text-gray-500">
-        <Link href={`/dashboard-engenheiro/vias/${viaId}`} className="hover:underline">{relatorio.via.name}</Link>
-        <ChevronRight className="mx-2 h-4 w-4" />
-        <Link href={`/dashboard-engenheiro/vias/${viaId}/relatorios-via/rds`} className="hover:underline">RDSs da Via</Link>
-        <ChevronRight className="mx-2 h-4 w-4" />
-        <span className="font-semibold text-gray-700">Detalhes</span>
-      </nav>
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: relatorio.via.name, href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'RDSs da Via', href: `/dashboard-engenheiro/vias/${viaId}/relatorios-via/rds` },
+          { label: relatorio.titulo || 'Detalhes' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}/relatorios-via/rds`}
+        backLabel="Voltar para Lista"
+      />
 
       {/* Cabeçalho */}
-      <div className="p-6 bg-white rounded-lg shadow-md mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">{relatorio.titulo}</h1>
+      <div className="p-6 bg-white dark:bg-card rounded-lg shadow-sm border mb-8">
+        <h1 className="text-2xl font-bold text-foreground">{relatorio.titulo}</h1>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><span className="font-semibold block text-gray-500">Via</span>{relatorio.via.name}</div>
-          <div><span className="font-semibold block text-gray-500">Nº de Relatórios</span>{relatorio.itens.length}</div>
-          <div><span className="font-semibold block text-gray-500">Data de Criação</span>{new Date(relatorio.createdAt).toLocaleDateString('pt-BR')}</div>
-          <div><span className="font-semibold block text-gray-500">Criado por:</span>{relatorio.criadoPor.name}</div>
-          <div><span className="font-semibold block text-gray-500">Nº Total de Fotos</span>{allFotos.length}</div>
+          <div><span className="font-semibold block text-muted-foreground">Via</span>{relatorio.via.name}</div>
+          <div><span className="font-semibold block text-muted-foreground">Nº de Relatórios</span>{relatorio.itens.length}</div>
+          <div><span className="font-semibold block text-muted-foreground">Data de Criação</span>{new Date(relatorio.createdAt).toLocaleDateString('pt-BR')}</div>
+          <div><span className="font-semibold block text-muted-foreground">Criado por:</span>{relatorio.criadoPor.name}</div>
+          <div><span className="font-semibold block text-muted-foreground">Nº Total de Fotos</span>{allFotos.length}</div>
         </div>
       </div>
 
@@ -138,19 +137,19 @@ export default async function RDSConsolidadoPage({ params }: { params: Promise<{
         </CardHeader>
         <CardContent className="space-y-4">
           {allDadosRDS.map((dados, index) => (
-            <div key={index} className="border-b pb-4">
+            <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
               <h3 className="font-semibold text-primary">{dados.trechoNome}</h3>
               <div className="grid grid-cols-3 gap-4 text-sm mt-2">
-                <div><span className="font-semibold block text-gray-500">Clima</span>{dados.clima || 'N/A'}</div>
-                <div><span className="font-semibold block text-gray-500">Entrada</span>{dados.horarioEntrada || 'N/A'}</div>
-                <div><span className="font-semibold block text-gray-500">Saída</span>{dados.horarioSaida || 'N/A'}</div>
+                <div><span className="font-semibold block text-muted-foreground">Clima</span>{dados.clima || 'N/A'}</div>
+                <div><span className="font-semibold block text-muted-foreground">Entrada</span>{dados.horarioEntrada || 'N/A'}</div>
+                <div><span className="font-semibold block text-muted-foreground">Saída</span>{dados.horarioSaida || 'N/A'}</div>
               </div>
               <div className="text-sm mt-3">
-                <span className="font-semibold block text-gray-500">Anotações</span>
+                <span className="font-semibold block text-muted-foreground">Anotações</span>
                 <p className="mt-1 whitespace-pre-wrap">{dados.anotacoes || 'Nenhuma.'}</p>
               </div>
               <div className="text-sm mt-3">
-                <span className="font-semibold block text-gray-500">Ocorrências</span>
+                <span className="font-semibold block text-muted-foreground">Ocorrências</span>
                 <p className="mt-1 whitespace-pre-wrap">{dados.ocorrencias || 'Nenhuma.'}</p>
               </div>
             </div>
@@ -160,10 +159,10 @@ export default async function RDSConsolidadoPage({ params }: { params: Promise<{
 
       {/* Galeria de Fotos Consolidada */}
       {allFotos.length > 0 && (
-        <>
-          <h2 className="text-xl font-semibold mb-4">Galeria de Fotos Consolidada</h2>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Galeria de Fotos Consolidada</h2>
           <RelatorioPhotoGrid fotos={allFotos} />
-        </>
+        </div>
       )}
     </div>
   );

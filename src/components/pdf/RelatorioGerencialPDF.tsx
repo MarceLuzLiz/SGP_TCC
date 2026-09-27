@@ -2,9 +2,8 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import { formatKmToStakes } from '@/lib/formatters';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
-// ... (Copie os tipos de DadosGerenciais do arquivo gerencial.ts ou importe se possível)
-// Para garantir, vou redefinir aqui para o componente
 type FotoCompleta = Foto & { patologia: Patologia | null; rdsOcorrencia: RdsOcorrencia | null };
 
 interface DadosGerenciaisPDF {
@@ -119,7 +118,7 @@ export const RelatorioGerencialPDF = ({ dados, titulo, dataGeracao, criadoPor, l
             </Text>
           
           <Text style={styles.subTitle}>
-            Gerado em: {new Date(dataGeracao).toLocaleDateString('pt-BR')} | Responsável: {criadoPor} {/* <-- 2. EXIBIÇÃO */}
+            Gerado em: {new Date(dataGeracao).toLocaleDateString('pt-BR')} | Responsável: {criadoPor}
           </Text>
         </View>
       </View>
@@ -182,20 +181,22 @@ export const RelatorioGerencialPDF = ({ dados, titulo, dataGeracao, criadoPor, l
         </View>
       </View>
 
-      {/* 4. FOTOS POR TRECHO (Quebra de página automática) */}
-      
-      {dados.fotosPorTrecho.map((trecho, i) => (
-        <View key={i} break>
-        <Text style={[styles.tableHeader, {marginTop: 20}]}>Detalhamento Fotográfico</Text> 
-           <Text style={styles.sectionTitle}>
-             {trecho.trechoNome} (Km {trecho.kmInicial} - {trecho.kmFinal})
-           </Text>
-           <Text style={{fontSize: 9, marginBottom: 10, color: '#555'}}>
-             Vistoria Ref: {new Date(trecho.dataVistoria).toLocaleDateString('pt-BR')}
-           </Text>
+      {/* 4. FOTOS POR TRECHO (Ordenadas por Estaca da 1 em diante) */}
+      {dados.fotosPorTrecho.map((trecho, i) => {
+        const fotosOrdenadas = sortFotosByEstaca(trecho.fotos);
 
-           <View style={styles.grid}>
-              {trecho.fotos.map((foto) => (
+        return (
+          <View key={i} break>
+            <Text style={[styles.tableHeader, {marginTop: 20}]}>Detalhamento Fotográfico</Text> 
+            <Text style={styles.sectionTitle}>
+              {trecho.trechoNome} (Km {trecho.kmInicial} - {trecho.kmFinal})
+            </Text>
+            <Text style={{fontSize: 9, marginBottom: 10, color: '#555'}}>
+              Vistoria Ref: {new Date(trecho.dataVistoria).toLocaleDateString('pt-BR')}
+            </Text>
+
+            <View style={styles.grid}>
+              {fotosOrdenadas.map((foto) => (
                 <View key={foto.id} style={styles.card} wrap={false}>
                   <View style={styles.imageWrapper}>
                     {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -217,9 +218,10 @@ export const RelatorioGerencialPDF = ({ dados, titulo, dataGeracao, criadoPor, l
                   </View>
                 </View>
               ))}
-           </View>
-        </View>
-      ))}
+            </View>
+          </View>
+        );
+      })}
 
       <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
         `Relatório Gerencial da Via - Página ${pageNumber} de ${totalPages}`

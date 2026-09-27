@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 // Tipos de dados
 type FotoCompleta = Foto & {
@@ -109,7 +110,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// --- CORREÇÃO 1: Usando Generics <T> em vez de any[] ---
 const chunkArray = <T,>(array: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -129,8 +129,9 @@ export const RelatorioPDF = ({
   fotos,
   logoUrl
 }: RelatorioPDFProps) => {
-  
-  const photoChunks = chunkArray(fotos, 4);
+  // Ordena as fotos por estaca crescente (estaca 1 em diante)
+  const sortedFotos = sortFotosByEstaca(fotos);
+  const photoChunks = chunkArray(sortedFotos, 4);
 
   return (
     <Document>
@@ -138,7 +139,6 @@ export const RelatorioPDF = ({
         <Page key={pageIndex} size="A4" style={styles.page}>
           {/* CABEÇALHO */}
           <View style={styles.header}>
-            {/* --- CORREÇÃO 2: Adicionado prop 'alt' --- */}
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             {logoUrl && <Image style={styles.logo} src={logoUrl} />}
             <View style={styles.headerInfo}>

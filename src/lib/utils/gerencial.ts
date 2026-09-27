@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { FotoTipo, StatusAprovacao, Foto, Patologia, RdsOcorrencia } from '@prisma/client';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 type FotoCompleta = Foto & { patologia: Patologia | null; rdsOcorrencia: RdsOcorrencia | null };
 
 interface DadosGerenciais {
@@ -96,13 +97,13 @@ export async function gerarDadosGerenciais(viaId: string, dataRef: Date): Promis
     });
 
     if (fotos.length > 0) {
-        // Salva para o PDF
+        // Salva para o PDF com fotos ordenadas por estaca
         fotosPorTrecho.push({
             trechoNome: trecho.nome,
             kmInicial: trecho.kmInicial,
             kmFinal: trecho.kmFinal,
             dataVistoria: vistoriaAlvo.dataVistoria,
-            fotos: fotos
+            fotos: sortFotosByEstaca(fotos)
         });
 
         // Agrega para o cálculo

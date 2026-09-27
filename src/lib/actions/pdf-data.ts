@@ -1,6 +1,7 @@
 'use server';
 import prisma from '@/lib/prisma';
 import { getIggDataForVistoria } from '@/lib/utils/igg';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 // --- 1. DADOS PARA RFT/RDS INDIVIDUAL ---
 export async function getIndividualRelatorioPdfData(relatorioId: string) {
@@ -33,7 +34,7 @@ export async function getIndividualRelatorioPdfData(relatorioId: string) {
     dataVistoria: relatorio.vistoria.dataVistoria,
     criadoPor: relatorio.user.name,
     aprovadoPor: relatorio.approver?.name || 'Pendente',
-    fotos: relatorio.fotos.map((f) => f.foto),
+    fotos: sortFotosByEstaca(relatorio.fotos.map((f) => f.foto)),
     dadosRDS, // Apenas para RDS
   };
 }
@@ -66,7 +67,7 @@ export async function getConsolidadoViaPdfData(relatorioViaId: string) {
 
   if (!relatorio) throw new Error('Relatório consolidado não encontrado');
 
-  // Transforma os dados para o formato agrupado por trecho
+  // Transforma os dados para o formato agrupado por trecho com fotos ordenadas por estaca
   const trechos = relatorio.itens.map((item) => {
     const jsonRDS = item.relatorioOrigem.dadosJson
       ? JSON.parse(item.relatorioOrigem.dadosJson)
@@ -76,7 +77,7 @@ export async function getConsolidadoViaPdfData(relatorioViaId: string) {
       kmInicial: item.relatorioOrigem.trecho.kmInicial,
       kmFinal: item.relatorioOrigem.trecho.kmFinal,
       dataVistoria: item.relatorioOrigem.vistoria.dataVistoria,
-      fotos: item.relatorioOrigem.fotos.map((f) => f.foto),
+      fotos: sortFotosByEstaca(item.relatorioOrigem.fotos.map((f) => f.foto)),
       dadosRDS: jsonRDS,
     };
   });
@@ -103,6 +104,14 @@ export async function getGerencialViaPdfData(relatorioViaId: string) {
   if (!relatorio || !relatorio.dadosJson) throw new Error('Relatório gerencial inválido');
 
   const dados = JSON.parse(relatorio.dadosJson);
+
+  // Ordena fotos por estaca em cada trecho do relatório gerencial
+  if (dados.fotosPorTrecho && Array.isArray(dados.fotosPorTrecho)) {
+    dados.fotosPorTrecho = dados.fotosPorTrecho.map((t: any) => ({
+      ...t,
+      fotos: sortFotosByEstaca(t.fotos || []),
+    }));
+  }
 
   // Combina os dados salvos com o metadado do relatório
   return {
@@ -153,6 +162,6 @@ export async function getRelatorioIggTrechoPdfData(trechoId: string, vistoriaId:
     iggTotal: dadosCalculados.iggTotal,
     tabelaCalculo: dadosCalculados.tabelaCalculo,
     tabelaPatologias: dadosCalculados.tabelaPatologias,
-    fotos: dadosCalculados.fotos
+    fotos: sortFotosByEstaca(dadosCalculados.fotos)
   };
 }

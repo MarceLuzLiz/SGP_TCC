@@ -1,11 +1,11 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronRight, FileText } from 'lucide-react';
-import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGrid'; // Reutilizando
+import { FileText } from 'lucide-react';
+import { RelatorioPhotoGrid } from '@/app/dashboard/_components/RelatorioPhotoGrid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DownloadConsolidadoRftButton } from '@/components/pdf/DownloadConsolidadoRftButton';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 // Função de busca para este relatório
 async function getConsolidadoDetails(relatorioViaId: string) {
@@ -14,15 +14,15 @@ async function getConsolidadoDetails(relatorioViaId: string) {
     include: {
       via: true,
       criadoPor: { select: { name: true } },
-      itens: { // Pega os itens de ligação
+      itens: {
         include: {
-          relatorioOrigem: { // Pega o relatório de trecho original
+          relatorioOrigem: {
             include: {
-              trecho: true, // Pega o nome do trecho
-              vistoria: true, // Pega a data da vistoria
-              fotos: { // Pega os links das fotos do relatório de trecho
+              trecho: true,
+              vistoria: true,
+              fotos: {
                 include: {
-                  foto: { // Pega os dados da foto
+                  foto: {
                     include: {
                       patologia: true,
                       rdsOcorrencia: true,
@@ -34,7 +34,7 @@ async function getConsolidadoDetails(relatorioViaId: string) {
           },
         },
         orderBy: {
-          relatorioOrigem: { trecho: { kmInicial: 'asc' } }, // Ordena por trecho
+          relatorioOrigem: { trecho: { kmInicial: 'asc' } },
         },
       },
     },
@@ -42,7 +42,6 @@ async function getConsolidadoDetails(relatorioViaId: string) {
 
   if (!relatorio) return null;
 
-  // Achata a lista de fotos: [[foto1, foto2], [foto3]] -> [foto1, foto2, foto3]
   const allFotos = relatorio.itens.flatMap(item => 
     item.relatorioOrigem.fotos.map(fotoItem => fotoItem.foto)
   );
@@ -70,37 +69,39 @@ export default async function RFTConsolidadoPage({ params }: { params: Promise<{
     titulo: relatorio.titulo,
     viaNome: relatorio.via.name,
     dataGeracao: relatorio.createdAt,
-    criadoPor: relatorio.criadoPor.name, // Ou adicionar criador no schema
+    criadoPor: relatorio.criadoPor.name,
     trechos: trechosParaPdf
   };
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center text-sm text-gray-500">
-        <Link href={`/dashboard-engenheiro/vias/${viaId}`} className="hover:underline">{relatorio.via.name}</Link>
-        <ChevronRight className="mx-2 h-4 w-4" />
-        <Link href={`/dashboard-engenheiro/vias/${viaId}/relatorios-via/rft`} className="hover:underline">RFTs da Via</Link>
-        <ChevronRight className="mx-2 h-4 w-4" />
-        <span className="font-semibold text-gray-700">Detalhes</span>
-      </nav>
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: relatorio.via.name, href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'RFTs da Via', href: `/dashboard-engenheiro/vias/${viaId}/relatorios-via/rft` },
+          { label: relatorio.titulo || 'Detalhes' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}/relatorios-via/rft`}
+        backLabel="Voltar para RFTs"
+      />
 
       {/* Cabeçalho */}
-      <div className="p-6 bg-white rounded-lg shadow-md mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">{relatorio.titulo}</h1>
+      <div className="p-6 bg-white dark:bg-card border rounded-lg shadow-xs mb-8">
+        <h1 className="text-2xl font-bold text-foreground">{relatorio.titulo}</h1>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><span className="font-semibold block text-gray-500">Via</span>{relatorio.via.name}</div>
-          <div><span className="font-semibold block text-gray-500">Nº de Relatórios</span>{relatorio.itens.length}</div>
-          <div><span className="font-semibold block text-gray-500">Data de Criação</span>{new Date(relatorio.createdAt).toLocaleDateString('pt-BR')}</div>
-          <div><span className="font-semibold block text-gray-500">Criado por:</span>{relatorio.criadoPor.name}</div>
-          <div><span className="font-semibold block text-gray-500">Nº Total de Fotos</span>{allFotos.length}</div>
+          <div><span className="font-semibold block text-muted-foreground">Via</span>{relatorio.via.name}</div>
+          <div><span className="font-semibold block text-muted-foreground">Nº de Relatórios</span>{relatorio.itens.length}</div>
+          <div><span className="font-semibold block text-muted-foreground">Data de Criação</span>{new Date(relatorio.createdAt).toLocaleDateString('pt-BR')}</div>
+          <div><span className="font-semibold block text-muted-foreground">Criado por:</span>{relatorio.criadoPor.name}</div>
+          <div><span className="font-semibold block text-muted-foreground">Nº Total de Fotos</span>{allFotos.length}</div>
         </div>
       </div>
 
       <DownloadConsolidadoRftButton 
-             dados={dadosPDF} 
-             fileName={`RFT_Consolidado_${relatorio.via.name}.pdf`} 
-          />
+         dados={dadosPDF} 
+         fileName={`RFT_Consolidado_${relatorio.via.name}.pdf`} 
+      />
       
       {/* Lista de Relatórios de Trecho Incluídos */}
       <Card>

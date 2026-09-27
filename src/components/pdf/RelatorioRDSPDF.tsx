@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 // Tipos de dados
 type FotoCompleta = Foto & {
@@ -118,6 +119,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-between',
   },
+  label: {
+    fontWeight: 'bold',
+    fontSize: 8,
+    color: '#666',
+  },
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -152,8 +158,9 @@ export const RelatorioRDSPDF = ({
   dadosRDS,
   logoUrl
 }: RelatorioRDSPDFProps) => {
-  
-  const photoChunks = chunkArray(fotos, 4);
+  // Ordena as fotos por estaca crescente (estaca 1 em diante)
+  const sortedFotos = sortFotosByEstaca(fotos);
+  const photoChunks = chunkArray(sortedFotos, 4);
 
   return (
     <Document>

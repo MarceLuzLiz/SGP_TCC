@@ -327,3 +327,142 @@ export async function updateTrecho(
     return { error: 'Erro no servidor ao atualizar o trecho.' };
   }
 }
+
+/**
+ * MÓDULO 2: ENGENHEIRO / ADMIN
+ * Atualiza as dimensões (kmInicial e kmFinal) de um Trecho existente.
+ */
+export async function updateTrechoKms(
+  trechoId: string,
+  data: { kmInicial: number; kmFinal: number }
+): Promise<ActionResult> {
+  const session = await getServerSession(authOptions);
+
+  // @ts-expect-error Corrigido
+  if (!session?.user?.id || (session.user.role !== Role.ENGENHEIRO && session.user.role !== Role.ADMIN)) {
+    return { error: 'Acesso negado. Requer permissão de Engenheiro ou Administrador.' };
+  }
+
+  if (data.kmFinal <= data.kmInicial) {
+    return { error: 'O Km Final deve ser maior que o Km Inicial.' };
+  }
+
+  try {
+    const trecho = await prisma.trecho.findUnique({
+      where: { id: trechoId },
+      include: {
+        via: {
+          select: {
+            extensaoKm: true,
+            trechos: { select: { id: true, kmInicial: true, kmFinal: true, nome: true } },
+          },
+        },
+      },
+    });
+
+    if (!trecho) return { error: 'Trecho não encontrado.' };
+
+    if (data.kmFinal > trecho.via.extensaoKm) {
+      return {
+        error: `O Km Final (${data.kmFinal.toFixed(3)}) excede a extensão total da via (${trecho.via.extensaoKm.toFixed(3)} km).`,
+      };
+    }
+
+    // Verificar sobreposição com outros trechos
+    const otherTrechos = trecho.via.trechos.filter((t) => t.id !== trechoId);
+    for (const other of otherTrechos) {
+      const overlap = data.kmInicial < other.kmFinal && data.kmFinal > other.kmInicial;
+      if (overlap) {
+        return {
+          error: `Os novos limites sobrepõem o trecho "${other.nome}" (Km ${other.kmInicial.toFixed(3)} - ${other.kmFinal.toFixed(3)}).`,
+        };
+      }
+    }
+
+    // Recalcular estacas
+    const metrosIniciais = data.kmInicial * 1000;
+    const metrosFinais = data.kmFinal * 1000;
+    const estacaInicialStr = metrosParaEstacaString(metrosIniciais);
+    const estacaFinalStr = metrosParaEstacaString(metrosFinais);
+    const estacasTrecho = `${estacaInicialStr} até ${estacaFinalStr}`;
+
+    await prisma.trecho.update({
+      where: { id: trechoId },
+      data: {
+        kmInicial: data.kmInicial,
+        kmFinal: data.kmFinal,
+        estacas: estacasTrecho,
+      },
+    });
+
+    revalidatePath(`/dashboard-engenheiro/vias/${trecho.viaId}`);
+    revalidatePath(`/dashboard-engenheiro/trechos/${trechoId}`);
+
+    return { success: 'Dimensões do trecho atualizadas com sucesso!' };
+  } catch (error) {
+    console.error('Falha ao atualizar dimensões do trecho:', error);
+    return { error: 'Erro no servidor ao atualizar as dimensões do trecho.' };
+  }
+}
+
+/**
+ * MÓDULO 2: ENGENHEIRO / ADMIN
+ * Atualiza a geometria de uma Via (extensão e trajetoJson).
+ */
+export async function updateViaGeometry(
+  viaId: string,
+  data: { extensaoKm: number; trajetoJson: any }
+): Promise<ActionResult> {
+  const session = await getServerSession(authOptions);
+
+  // @ts-expect-error Corrigido
+  if (!session?.user?.id || (session.user.role !== Role.ENGENHEIRO && session.user.role !== Role.ADMIN)) {
+    return { error: 'Acesso negado. Requer permissão de Engenheiro ou Administrador.' };
+  }
+
+  if (data.extensaoKm <= 0) {
+    return { error: 'A extensão deve ser maior que zero.' };
+  }
+
+  if (!Array.isArray(data.trajetoJson) || data.trajetoJson.length < 2) {
+    return { error: 'O trajetoJson deve conter ao menos 2 coordenadas.' };
+  }
+
+  try {
+    const via = await prisma.via.findUnique({
+      where: { id: viaId },
+      include: { trechos: { select: { id: true, kmFinal: true, nome: true } } },
+    });
+
+    if (!via) return { error: 'Via não encontrada.' };
+
+    const maxTrechoKmFinal =
+      via.trechos.length > 0 ? Math.max(...via.trechos.map((t) => t.kmFinal)) : 0;
+
+    if (data.extensaoKm < maxTrechoKmFinal) {
+      return {
+        error: `A extensão (${data.extensaoKm.toFixed(3)} km) não pode ser menor que o Km Final do último trecho (${maxTrechoKmFinal.toFixed(3)} km).`,
+      };
+    }
+
+    const extensaoMetros = data.extensaoKm * 1000;
+    const estacasVia = metrosParaEstacaString(extensaoMetros);
+
+    await prisma.via.update({
+      where: { id: viaId },
+      data: {
+        extensaoKm: data.extensaoKm,
+        trajetoJson: data.trajetoJson,
+        estacas: estacasVia,
+      },
+    });
+
+    revalidatePath('/dashboard-engenheiro/vias');
+    revalidatePath(`/dashboard-engenheiro/vias/${viaId}`);
+
+    return { success: 'Geometria da via atualizada com sucesso!' };
+  } catch (error) {
+    console.error('Falha ao atualizar geometria da via:', error);
+    return { error: 'Erro no servidor ao atualizar a geometria da via.' };
+  }
+}

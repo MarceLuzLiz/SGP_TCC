@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -227,5 +228,17 @@ a:active:not([aria-disabled="true"]),
 .custom-pathology-popup .leaflet-popup-content {
   margin: 6px 8px;
   line-height: 1.4;
+}
+
+/* Marcadores com texto e pins customizados no Leaflet (evita o quadrado branco/cinza padrão de 12x12) */
+.custom-clean-marker,
+.custom-clean-marker.leaflet-div-icon,
+.custom-edit-via-marker,
+.custom-edit-marker,
+.custom-slider-pin {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
 }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import { formatKmToStakes } from '@/lib/formatters';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 type FotoCompleta = Foto & { patologia: Patologia | null; rdsOcorrencia: RdsOcorrencia | null };
 
@@ -20,8 +21,6 @@ interface DadosIggTrechoPDF {
   tabelaPatologias: { nome: string; codigo: string; quantidade: number }[];
   fotos: FotoCompleta[];
   logoUrl: string;
-  
-  
 }
 
 const getIggRating = (igg: number) => {
@@ -40,23 +39,23 @@ const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase' },
   subTitle: { fontSize: 10, color: '#444', marginTop: 2 },
   
-  // IGG Box
-  iggBox: { alignSelf: 'center', padding: 10, borderWidth: 1, borderStyle: 'solid', borderColor: '#000', marginTop: 10, marginBottom: 20, alignItems: 'center', minWidth: 150 },
-  iggTitle: { fontSize: 10, fontWeight: 'bold' },
-  iggValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  iggStatus: { fontSize: 12, fontWeight: 'bold', marginTop: 4, textTransform: 'uppercase' },
-
   // Tabelas
-  tableContainer: { marginTop: 10, marginBottom: 20 },
+  tableContainer: { marginTop: 10, marginBottom: 15 },
   tableHeader: { fontSize: 12, fontWeight: 'bold', marginBottom: 5, color: '#222' },
   table: { width: '100%', borderStyle: 'solid', borderWidth: 1, borderColor: '#bfbfbf' },
   tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#bfbfbf', minHeight: 20, alignItems: 'center' },
   tableHeaderRow: { backgroundColor: '#f0f0f0' },
   tableCol: { borderRightWidth: 1, borderRightColor: '#bfbfbf', padding: 4 },
   tableCell: { fontSize: 8 },
+  
+  // IGG Box
+  iggBox: { alignSelf: 'center', padding: 10, borderWidth: 1, borderStyle: 'solid', borderColor: '#000', marginTop: 10, marginBottom: 10, alignItems: 'center', minWidth: 150 },
+  iggTitle: { fontSize: 10, fontWeight: 'bold' },
+  iggValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  iggStatus: { fontSize: 12, fontWeight: 'bold', marginTop: 4, textTransform: 'uppercase' },
 
   // Fotos
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   imageWrapper: {
     width: '100%',
     height: 180,
@@ -86,15 +85,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
   },
-
+  
   footer: { position: 'absolute', bottom: 30, left: 30, right: 30, fontSize: 8, textAlign: 'center', color: 'grey', borderTopWidth: 1, borderColor: '#eee', paddingTop: 10 },
 });
 
 export const RelatorioIggTrechoPDF = (props: DadosIggTrechoPDF) => {
-  // Calcula o conceito
   const rating = getIggRating(props.iggTotal);
-
-  const extensaoKm = Math.abs(props.kmFinal - props.kmInicial);
+  const extensaoKm = props.kmFinal - props.kmInicial;
+  const fotosOrdenadas = sortFotosByEstaca(props.fotos);
 
   return (
   <Document>
@@ -107,19 +105,16 @@ export const RelatorioIggTrechoPDF = (props: DadosIggTrechoPDF) => {
           <Text style={styles.subTitle}>Via: {props.viaNome} | Trecho: {props.trechoNome}</Text>
 
           <Text style={styles.subTitle}>
-               Localização: Est. {formatKmToStakes(props.kmInicial)} até Est. {formatKmToStakes(props.kmFinal)}
+               Extensão: {extensaoKm.toFixed(2)} km (Km {props.kmInicial.toFixed(2)} ao {props.kmFinal.toFixed(2)}) | Nº de estacas ({formatKmToStakes(extensaoKm)})
             </Text>
-
+          
           <Text style={styles.subTitle}>
-               Extensão: {extensaoKm.toFixed(3)} km
-            </Text>
-            
-          <Text style={styles.subTitle}>
-             Vistoria: {new Date(props.dataVistoria).toLocaleDateString('pt-BR')} | Resp: {props.criadoPor}
+            Data Vistoria: {new Date(props.dataVistoria).toLocaleDateString('pt-BR')} | Responsável: {props.criadoPor}
           </Text>
         </View>
       </View>
 
+      {/* Resultado IGG */}
       <View style={styles.iggBox}>
           <Text style={styles.iggTitle}>IGG DO TRECHO</Text>
           <Text style={styles.iggValue}>{props.iggTotal.toFixed(2)}</Text>
@@ -175,11 +170,10 @@ export const RelatorioIggTrechoPDF = (props: DadosIggTrechoPDF) => {
       </View>
 
       <View break>
-
-      <Text style={[styles.tableHeader, {marginTop: 20}]}>Evidências Fotográficas</Text>
-      
-      <View style={styles.grid}>
-          {props.fotos.map((foto) => (
+        <Text style={[styles.tableHeader, {marginTop: 20}]}>Evidências Fotográficas</Text>
+        
+        <View style={styles.grid}>
+          {fotosOrdenadas.map((foto) => (
             <View key={foto.id} style={styles.card} wrap={false}>
               <View style={styles.imageWrapper}>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -194,7 +188,7 @@ export const RelatorioIggTrechoPDF = (props: DadosIggTrechoPDF) => {
               </View>
             </View>
           ))}
-      </View>
+        </View>
       </View>
 
       <Text style={styles.footer} render={({ pageNumber, totalPages }) => (

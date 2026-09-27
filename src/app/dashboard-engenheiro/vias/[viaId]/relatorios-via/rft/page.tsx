@@ -1,25 +1,24 @@
 import prisma from '@/lib/prisma';
 import { Prisma, TipoRelatorioVia } from '@prisma/client';
-// 1. Importar Prisma
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, FileText } from 'lucide-react';
 import { notFound } from 'next/navigation';
-// 2. IMPORTAR FILTRO E BOTAO
 import { RelatorioViaFiltro } from '../_components/RelatorioViaFiltro';
 import { DeleteRelatorioViaButton } from '../_components/DeleteRelatorioViaButton';
 import { DownloadConsolidadoViaButton } from '@/components/pdf/SmartPdfButtons';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 export default async function RftViaListPage({
   params,
-  searchParams, // 3. Aceitar searchParams
+  searchParams,
 }: {
   params: Promise<{ viaId: string }>;
-  searchParams: Promise<{ from?: string; to?: string }>; // 3. Aceitar searchParams
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { viaId } = await params;
-  const { from, to } = await searchParams; // 4. Ler filtros
+  const { from, to } = await searchParams;
   
   const via = await prisma.via.findUnique({
     where: { id: viaId },
@@ -28,7 +27,7 @@ export default async function RftViaListPage({
 
   if (!via) notFound();
 
-  // 5. Aplicar filtros
+  // Aplicar filtros
   const where: Prisma.RelatorioViaWhereInput = {
     viaId: viaId,
     tipo: TipoRelatorioVia.RFT_VIA,
@@ -41,16 +40,26 @@ export default async function RftViaListPage({
       endDate.setDate(endDate.getDate() + 1);
       dateFilter.lt = endDate;
     }
-    where.createdAt = dateFilter; // Filtra pela data de criação
+    where.createdAt = dateFilter;
   }
 
   const relatorios = await prisma.relatorioVia.findMany({
-    where, // 6. Usar 'where'
+    where,
     orderBy: { createdAt: 'desc' },
   });
 
   return (
     <div className="space-y-6">
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: via.name, href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'RFTs da Via' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}`}
+        backLabel="Voltar para a Via"
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">RFTs Consolidados da Via</h1>
@@ -75,7 +84,6 @@ export default async function RftViaListPage({
             <div className="absolute top-2 right-2 z-10">
               <DeleteRelatorioViaButton relatorioViaId={rel.id} viaId={via.id} />
             </div>
-            {/* --- ADIÇÃO: Botão de Download --- */}
             <div className="absolute top-2 right-10 z-10">
               <DownloadConsolidadoViaButton id={rel.id} type="RFT_VIA" />
             </div>

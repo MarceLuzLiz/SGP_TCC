@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-// --- 1. IMPORTAÇÕES DO CALENDÁRIO ---
 import {
   Popover,
   PopoverContent,
@@ -30,7 +29,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatKmToStakes } from '@/lib/formatters';
-// --- FIM DAS IMPORTAÇÕES ---
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 // Tipos para os dados da pré-visualização
 interface TabelaPatologiaRow {
@@ -61,7 +60,6 @@ export default function NovoGerencialPage({
   const router = useRouter();
   
   const [titulo, setTitulo] = useState('');
-  // --- 2. ESTADO DO CALENDÁRIO ---
   const [dataRef, setDataRef] = useState<Date | undefined>(new Date());
   
   const [dadosPrevia, setDadosPrevia] = useState<DadosGerenciais | null>(null);
@@ -116,7 +114,18 @@ export default function NovoGerencialPage({
   };
 
   return (
-    <div className="space-y-6 mx-16">
+    <div className="space-y-6 mx-auto max-w-5xl">
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: dadosPrevia?.viaName || 'Via', href: `/dashboard-engenheiro/vias/${viaId}` },
+          { label: 'Relatórios Gerenciais', href: `/dashboard-engenheiro/vias/${viaId}/relatorios-via/gerencial` },
+          { label: 'Novo Relatório' },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${viaId}/relatorios-via/gerencial`}
+        backLabel="Voltar para Lista"
+      />
+
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Novo Relatório Gerencial</h1>
         <p className="text-muted-foreground">
@@ -126,7 +135,7 @@ export default function NovoGerencialPage({
       </div>
 
       {/* Formulário de Geração */}
-      <div className="space-y-4 border p-6 rounded-lg">
+      <div className="space-y-4 border p-6 rounded-lg bg-card">
         <div className="space-y-2">
           <Label htmlFor="titulo">Título do Relatório</Label>
           <Input
@@ -138,7 +147,6 @@ export default function NovoGerencialPage({
           />
         </div>
         
-        {/* --- 3. UI DO CALENDÁRIO SUBSTITUÍDA --- */}
         <div className="space-y-2">
           <Label htmlFor="dataRef">Data de Referência</Label>
           <Popover>
@@ -169,7 +177,6 @@ export default function NovoGerencialPage({
             O sistema buscará a vistoria de cada trecho mais próxima a esta data.
           </p>
         </div>
-        {/* --- FIM DA UI DO CALENDÁRIO --- */}
         
         <Button onClick={handleGerarPrevia} disabled={isGenerating || !!dadosPrevia} className="w-full">
           {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -182,7 +189,7 @@ export default function NovoGerencialPage({
         <div className="space-y-8 mt-8 pt-8 border-t animate-in fade-in-50">
           <h2 className="text-2xl font-bold text-center">Pré-visualização: {titulo}</h2>
           
-          <div className="p-6 border rounded-lg bg-slate-50">
+          <div className="p-6 border rounded-lg bg-slate-50 dark:bg-slate-900/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Col 1: Info da Via */}
               <div className="md:col-span-2 space-y-2">
@@ -195,11 +202,11 @@ export default function NovoGerencialPage({
               </div>
 
               <div className="space-y-1 text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase">Estações (n)</span>
-              <p className="text-xl font-semibold text-foreground">
-                {dadosPrevia.totalEstacoesConsideradas}
-              </p>
-           </div>
+                <span className="text-xs font-bold text-muted-foreground uppercase">Estações (n)</span>
+                <p className="text-xl font-semibold text-foreground">
+                  {dadosPrevia.totalEstacoesConsideradas}
+                </p>
+              </div>
               
               {/* Col 2: Info de Patologias */}
               <div className="text-left md:text-right">
@@ -210,16 +217,16 @@ export default function NovoGerencialPage({
               </div>
             </div>
             
-            {/* IGG Total (Movido para cá) */}
+            {/* IGG Total */}
             <div className="text-center mt-6 border-t pt-6">
               <h3 className="font-semibold mb-2">IGG DA VIA (Referência)</h3>
               <IggDisplay igg={dadosPrevia.iggTotal} />
             </div>
           </div>
           
-          {/* --- 4. TABELAS (AGORA RENDERIZADAS) --- */}
+          {/* TABELAS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="border rounded-lg p-4">
+            <div className="border rounded-lg p-4 bg-card">
               <h3 className="font-bold mb-4 text-lg">Quantitativo de Patologias</h3>
               <Table>
                 <TableHeader>
@@ -234,7 +241,7 @@ export default function NovoGerencialPage({
                     <TableRow key={i}>
                       <TableCell>
                         {row.nome}{' '}
-                        <span className="text-xs text-gray-400">({row.codigo})</span>
+                        <span className="text-xs text-muted-foreground">({row.codigo})</span>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {row.quantidade}
@@ -247,7 +254,7 @@ export default function NovoGerencialPage({
                 </TableBody>
               </Table>
             </div>
-            <div className="border rounded-lg p-4">
+            <div className="border rounded-lg p-4 bg-card">
               <h3 className="font-bold mb-4 text-lg">Memória de Cálculo do IGG</h3>
               <Table>
                 <TableHeader>
@@ -273,7 +280,6 @@ export default function NovoGerencialPage({
               </Table>
             </div>
           </div>
-          {/* --- FIM DAS TABELAS --- */}
           
           <Button onClick={handleSalvar} disabled={isSaving} className="w-full" size="lg">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

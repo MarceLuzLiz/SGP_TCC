@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import Image from 'next/image';
 import { Eye, Tag, Maximize, X } from 'lucide-react';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 // A tipagem agora precisa incluir as relações completas
 type FotoComDados = Foto & {
@@ -18,10 +19,15 @@ interface RelatorioPhotoGridProps {
 export function RelatorioPhotoGrid({ fotos }: RelatorioPhotoGridProps) {
   const [fullscreenFoto, setFullscreenFoto] = useState<FotoComDados | null>(null);
 
+  // Ordena as fotos por estaca em ordem crescente (estaca 1 em diante)
+  const fotosOrdenadas = useMemo(() => {
+    return sortFotosByEstaca(fotos);
+  }, [fotos]);
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {fotos.map((foto) => (
+        {fotosOrdenadas.map((foto) => (
           <div key={foto.id} className="rounded-lg overflow-hidden shadow-md bg-white">
             <div className="relative group">
               <Image 
@@ -39,7 +45,6 @@ export function RelatorioPhotoGrid({ fotos }: RelatorioPhotoGridProps) {
               </div>
             </div>
             
-            {/* --- MUDANÇA PRINCIPAL AQUI --- */}
             <div className="p-4 text-sm space-y-1">
               {foto.tipo === 'RFT' && foto.patologia ? (
                 <>
@@ -64,6 +69,9 @@ export function RelatorioPhotoGrid({ fotos }: RelatorioPhotoGridProps) {
                   </p>
                   <div className="flex items-center text-xs text-gray-500 pt-2 mt-2 border-t">
                     <span>{new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}</span>
+                    {foto.estaca && (
+                      <span className="ml-auto font-semibold">Estaca: {foto.estaca}</span>
+                    )}
                   </div>
                 </>
               ) : null}

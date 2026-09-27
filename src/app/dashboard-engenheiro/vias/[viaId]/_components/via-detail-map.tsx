@@ -353,9 +353,9 @@ export function ViaDetailMap({
       if (movableMarkerPosition && !isCompleto) {
         const sliderIcon = L.divIcon({
           className: 'custom-slider-pin',
-          html: `<div style="background:#ef4444; color:white; font-size:11px; font-weight:bold; padding:3px 7px; border-radius:6px; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap;">Km ${sliderValue.toFixed(3)}</div>`,
-          iconSize: [60, 24],
-          iconAnchor: [30, 24],
+          html: `<div style="display:inline-flex; align-items:center; width:max-content; background:#ef4444; color:white; font-size:11px; font-weight:bold; padding:3px 8px; border-radius:6px; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap; transform:translate(-50%, -100%); pointer-events:none;">Km ${sliderValue.toFixed(3)}</div>`,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
         });
         L.marker([movableMarkerPosition.lat, movableMarkerPosition.lng], {
           icon: sliderIcon,

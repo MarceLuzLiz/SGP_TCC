@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { getTrechoDetails } from '@/lib/data/engenheiro';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, MapPin, CheckSquare, BarChart3, Images, History, AlertTriangle } from 'lucide-react';
+import { MapPin, CheckSquare, BarChart3, Images, History, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { getIggHistoryForTrecho } from '@/lib/utils/igg';
 import { IggGeneratorCard } from './_components/IggGeneratorCard';
 import { EditTrechoDialog } from '@/app/dashboard-engenheiro/vias/[viaId]/_components/EditTrechoDialog';
 import { RequestExclusionDialog } from '@/app/dashboard-engenheiro/vias/[viaId]/_components/RequestExclusionDialog';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,13 +75,15 @@ export default async function TrechoDetailPage(
 
   return (
     <div className="space-y-6">
-      <Link
-        href={`/dashboard-engenheiro/vias/${trecho.via.id}`}
-        className="flex items-center text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Voltar para {trecho.via.name}
-      </Link>
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: trecho.via.name, href: `/dashboard-engenheiro/vias/${trecho.via.id}` },
+          { label: trecho.nome },
+        ]}
+        backHref={`/dashboard-engenheiro/vias/${trecho.via.id}`}
+        backLabel={`Voltar para ${trecho.via.name}`}
+      />
 
       {/* AVISO DE TRECHO SUSPENSO */}
       {trecho.isSuspended && (

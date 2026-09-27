@@ -1,9 +1,8 @@
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
 import { PhotoGrid } from './_components/PhotoGrid';
+import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
 
 async function getGalleryData(
   trechoId: string,
@@ -85,13 +84,16 @@ export default async function GaleriaPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href={`/dashboard-engenheiro/trechos/${resolvedParams.trechoId}`}
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Voltar para {trecho.nome}
-      </Link>
+      <BreadcrumbNav
+        items={[
+          { label: 'Vias & Trechos', href: '/dashboard-engenheiro/vias' },
+          { label: trecho.via.name, href: `/dashboard-engenheiro/vias/${trecho.via.id}` },
+          { label: trecho.nome, href: `/dashboard-engenheiro/trechos/${resolvedParams.trechoId}` },
+          { label: 'Galeria de Fotos' },
+        ]}
+        backHref={`/dashboard-engenheiro/trechos/${resolvedParams.trechoId}`}
+        backLabel={`Voltar para ${trecho.nome}`}
+      />
 
       <div className="flex items-center justify-between">
         <div>

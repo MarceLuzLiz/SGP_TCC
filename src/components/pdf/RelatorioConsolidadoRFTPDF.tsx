@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
+import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
 
 type FotoCompleta = Foto & {
   patologia: Patologia | null;
@@ -102,54 +103,58 @@ export const RelatorioConsolidadoRFTPDF = ({
         </View>
 
         {/* Iteração dos Trechos */}
-        {trechos.map((trecho, tIndex) => (
-          <View key={tIndex} style={styles.trechoSection} break={tIndex > 0}> 
-            {/* 'break' força nova página para cada trecho novo (opcional, mas organizado) */}
-            
-            <View style={styles.trechoHeader}>
-              <Text style={styles.trechoTitle}>{trecho.nome}</Text>
-              <Text style={styles.trechoInfo}>
-                Km {trecho.kmInicial.toFixed(2)} - {trecho.kmFinal.toFixed(2)} | Vistoria: {new Date(trecho.dataVistoria).toLocaleDateString('pt-BR')}
-              </Text>
-            </View>
+        {trechos.map((trecho, tIndex) => {
+          const fotosOrdenadas = sortFotosByEstaca(trecho.fotos);
 
-            {trecho.fotos.length === 0 ? (
-              <Text style={{fontSize: 10, color: '#777', fontStyle: 'italic', padding: 10}}>Nenhuma foto registrada neste trecho.</Text>
-            ) : (
-              <View style={styles.grid}>
-                {trecho.fotos.map((foto) => (
-                  <View key={foto.id} style={styles.card} wrap={false}>
-                    <View style={styles.imageWrapper}>
-                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                      <Image style={styles.image} src={foto.imageUrl} />
-                    </View>
-                    <View style={styles.cardContent}>
-                      <View>
-                        <Text style={{fontWeight: 'bold', fontSize: 9, marginBottom: 2, color: '#0f172a'}}>
-                          {foto.patologia?.classificacaoEspecifica || 'Sem classificação'}
-                        </Text>
-                        <Text style={{fontSize: 7.5, color: '#475569'}}>
-                          Cód: {foto.patologia?.codigoDnit || 'N/A'} | IGG: {foto.patologia?.mapeamentoIgg || 'N/A'}
-                        </Text>
-                        <Text style={{marginTop: 3, color: '#334155', fontSize: 7.5, lineHeight: 1.2}}>
-                          {foto.descricao ? (foto.descricao.length > 70 ? foto.descricao.substring(0, 70) + '...' : foto.descricao) : '-'}
-                        </Text>
-                      </View>
-                      <View style={{marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <Text style={{fontSize: 7, color: '#64748b'}}>
-                          {new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}
-                        </Text>
-                        <Text style={{fontSize: 7, fontWeight: 'bold', color: '#0f766e'}}>
-                          Estaca: {foto.estaca || 'N/D'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
+          return (
+            <View key={tIndex} style={styles.trechoSection} break={tIndex > 0}> 
+              {/* 'break' força nova página para cada trecho novo */}
+              
+              <View style={styles.trechoHeader}>
+                <Text style={styles.trechoTitle}>{trecho.nome}</Text>
+                <Text style={styles.trechoInfo}>
+                  Km {trecho.kmInicial.toFixed(2)} - {trecho.kmFinal.toFixed(2)} | Vistoria: {new Date(trecho.dataVistoria).toLocaleDateString('pt-BR')}
+                </Text>
               </View>
-            )}
-          </View>
-        ))}
+
+              {fotosOrdenadas.length === 0 ? (
+                <Text style={{fontSize: 10, color: '#777', fontStyle: 'italic', padding: 10}}>Nenhuma foto registrada neste trecho.</Text>
+              ) : (
+                <View style={styles.grid}>
+                  {fotosOrdenadas.map((foto) => (
+                    <View key={foto.id} style={styles.card} wrap={false}>
+                      <View style={styles.imageWrapper}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                        <Image style={styles.image} src={foto.imageUrl} />
+                      </View>
+                      <View style={styles.cardContent}>
+                        <View>
+                          <Text style={{fontWeight: 'bold', fontSize: 9, marginBottom: 2, color: '#0f172a'}}>
+                            {foto.patologia?.classificacaoEspecifica || 'Sem classificação'}
+                          </Text>
+                          <Text style={{fontSize: 7.5, color: '#475569'}}>
+                            Cód: {foto.patologia?.codigoDnit || 'N/A'} | IGG: {foto.patologia?.mapeamentoIgg || 'N/A'}
+                          </Text>
+                          <Text style={{marginTop: 3, color: '#334155', fontSize: 7.5, lineHeight: 1.2}}>
+                            {foto.descricao ? (foto.descricao.length > 70 ? foto.descricao.substring(0, 70) + '...' : foto.descricao) : '-'}
+                          </Text>
+                        </View>
+                        <View style={{marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <Text style={{fontSize: 7, color: '#64748b'}}>
+                            {new Date(foto.dataCaptura).toLocaleDateString('pt-BR')}
+                          </Text>
+                          <Text style={{fontSize: 7, fontWeight: 'bold', color: '#0f766e'}}>
+                            Estaca: {foto.estaca || 'N/D'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
 
         <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
           `Relatório Consolidado da Via - Página ${pageNumber} de ${totalPages}`
