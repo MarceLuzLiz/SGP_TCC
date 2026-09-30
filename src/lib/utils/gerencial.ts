@@ -1,9 +1,10 @@
 import prisma from '@/lib/prisma';
 import { FotoTipo, StatusAprovacao, Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
+import { gerarTabelaEstacas, ResultadoTabelaEstacas } from '@/lib/utils/tabelaEstacas';
 type FotoCompleta = Foto & { patologia: Patologia | null; rdsOcorrencia: RdsOcorrencia | null };
 
-interface DadosGerenciais {
+export interface DadosGerenciais {
   iggTotal: number;
   tabelaPatologias: {
     nome: string;
@@ -31,6 +32,7 @@ interface DadosGerenciais {
     fotos: FotoCompleta[];
   }[];
   totalEstacoesConsideradas: number;
+  tabelaEstacas?: ResultadoTabelaEstacas;
 }
 
 export async function gerarDadosGerenciais(viaId: string, dataRef: Date): Promise<DadosGerenciais> {
@@ -161,6 +163,9 @@ export async function gerarDadosGerenciais(viaId: string, dataRef: Date): Promis
   tabelaPatologias.sort((a, b) => b.quantidade - a.quantidade);
   tabelaCalculo.sort((a, b) => b.igi - a.igi);
 
+  // Gera matriz de patologias por estaca (Padrão DNIT)
+  const tabelaEstacas = gerarTabelaEstacas(nVia, fotosPorTrecho);
+
   return {
     iggTotal,
     tabelaPatologias,
@@ -172,5 +177,6 @@ export async function gerarDadosGerenciais(viaId: string, dataRef: Date): Promis
     totalPatologias: totalPatologias,
     fotosPorTrecho,
     totalEstacoesConsideradas: nVia,
+    tabelaEstacas,
   };
 }

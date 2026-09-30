@@ -4,46 +4,9 @@ import { pdf } from '@react-pdf/renderer';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { RelatorioGerencialPDF } from './RelatorioGerencialPDF';
+import { RelatorioGerencialPDF, DadosGerenciaisPDF } from './RelatorioGerencialPDF';
 import { toast } from 'sonner';
-import { Foto, Patologia, RdsOcorrencia } from '@prisma/client';
 import { getLogoUrl } from '@/lib/constants';
-
-
-// --- TIPOS (Devem coincidir com o RelatorioGerencialPDF) ---
-type FotoCompleta = Foto & { 
-  patologia: Patologia | null; 
-  rdsOcorrencia: RdsOcorrencia | null 
-};
-
-interface DadosGerenciaisPDF {
-  iggTotal: number;
-  tabelaPatologias: { 
-    nome: string; 
-    codigo: string; 
-    quantidade: number; 
-    trechosAfetados: number; 
-  }[];
-  tabelaCalculo: { 
-    patologia: string; 
-    fa: number; 
-    fr: number; 
-    fp: number; 
-    igi: number; 
-  }[];
-  viaName: string;
-  viaEstacas: string | null;
-  extensaoKm: number;
-  totalPatologias: number;
-  fotosPorTrecho: {
-    trechoNome: string;
-    kmInicial: number;
-    kmFinal: number;
-    dataVistoria: Date;
-    fotos: FotoCompleta[];
-  }[];
-  totalEstacoesConsideradas: number;
-}
 
 interface DownloadGerencialPdfButtonProps {
   dados: DadosGerenciaisPDF;

@@ -13,6 +13,8 @@ import { notFound } from 'next/navigation';
 import { DownloadGerencialPdfButton } from '@/components/pdf/DownloadGerencialPdfButton';
 import { formatKmToStakes } from '@/lib/formatters';
 import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
+import { TabelaPatologiasEstaca } from '@/components/relatorios/TabelaPatologiasEstaca';
+import { gerarTabelaEstacas, ResultadoTabelaEstacas } from '@/lib/utils/tabelaEstacas';
 
 type FotoCompleta = Foto & { 
   patologia: Patologia | null; 
@@ -51,6 +53,7 @@ interface DadosGerenciais {
     fotos: FotoCompleta[];
   }[];
   totalEstacoesConsideradas: number;
+  tabelaEstacas?: ResultadoTabelaEstacas;
 }
 
 export default async function DetalheGerencialPage({
@@ -72,6 +75,17 @@ export default async function DetalheGerencialPage({
   }
 
   const dados: DadosGerenciais = JSON.parse(relatorio.dadosJson);
+
+  // Garante a geração da matriz de patologias por estaca para relatórios novos ou já salvos
+  const tabelaEstacas = dados.tabelaEstacas || gerarTabelaEstacas(
+    dados.totalEstacoesConsideradas,
+    dados.fotosPorTrecho
+  );
+
+  const dadosComEstacas = {
+    ...dados,
+    tabelaEstacas,
+  };
 
   return (
     <div className="space-y-8">
@@ -97,7 +111,7 @@ export default async function DetalheGerencialPage({
       </div>
 
       <DownloadGerencialPdfButton 
-        dados={dados}
+        dados={dadosComEstacas}
         titulo={relatorio.titulo}
         dataGeracao={relatorio.createdAt}
         criadoPor={relatorio.criadoPor.name}
@@ -198,6 +212,13 @@ export default async function DetalheGerencialPage({
           </Table>
         </div>
       </div>
+
+      {/* TABELA 3: PLANILHA DE PATOLOGIAS POR ESTACA (PADRÃO DNIT) */}
+      <TabelaPatologiasEstaca
+        linhas={tabelaEstacas.linhas}
+        totais={tabelaEstacas.totais}
+        viaNome={dados.viaName}
+      />
     </div>
   );
 }

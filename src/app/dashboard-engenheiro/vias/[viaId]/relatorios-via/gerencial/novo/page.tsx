@@ -30,6 +30,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatKmToStakes } from '@/lib/formatters';
 import { BreadcrumbNav } from '@/components/navigation/BreadcrumbNav';
+import { TabelaPatologiasEstaca } from '@/components/relatorios/TabelaPatologiasEstaca';
+import { ResultadoTabelaEstacas } from '@/lib/utils/tabelaEstacas';
 
 // Tipos para os dados da pré-visualização
 interface TabelaPatologiaRow {
@@ -48,6 +50,7 @@ interface DadosGerenciais {
   extensaoKm: number;
   totalPatologias: number;
   totalEstacoesConsideradas: number;
+  tabelaEstacas?: ResultadoTabelaEstacas;
 }
 
 export default function NovoGerencialPage({
@@ -280,6 +283,15 @@ export default function NovoGerencialPage({
               </Table>
             </div>
           </div>
+
+          {/* TABELA 3: PLANILHA DE PATOLOGIAS POR ESTACA (PADRÃO DNIT) */}
+          {dadosPrevia.tabelaEstacas && (
+            <TabelaPatologiasEstaca
+              linhas={dadosPrevia.tabelaEstacas.linhas}
+              totais={dadosPrevia.tabelaEstacas.totais}
+              viaNome={dadosPrevia.viaName}
+            />
+          )}
           
           <Button onClick={handleSalvar} disabled={isSaving} className="w-full" size="lg">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

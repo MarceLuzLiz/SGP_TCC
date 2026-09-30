@@ -2,6 +2,7 @@
 import prisma from '@/lib/prisma';
 import { getIggDataForVistoria } from '@/lib/utils/igg';
 import { sortFotosByEstaca } from '@/lib/utils/photoOrder';
+import { gerarTabelaEstacas } from '@/lib/utils/tabelaEstacas';
 
 // --- 1. DADOS PARA RFT/RDS INDIVIDUAL ---
 export async function getIndividualRelatorioPdfData(relatorioId: string) {
@@ -113,6 +114,14 @@ export async function getGerencialViaPdfData(relatorioViaId: string) {
     }));
   }
 
+  // Garante a tabela de patologias por estaca para relatórios novos ou legados
+  if (!dados.tabelaEstacas && dados.fotosPorTrecho) {
+    dados.tabelaEstacas = gerarTabelaEstacas(
+      dados.totalEstacoesConsideradas,
+      dados.fotosPorTrecho
+    );
+  }
+
   // Combina os dados salvos com o metadado do relatório
   return {
     ...dados,
@@ -149,6 +158,18 @@ export async function getRelatorioIggTrechoPdfData(trechoId: string, vistoriaId:
   const extensaoMetros = Math.abs(kmFinal - kmInicial) * 1000;
   const totalEstacas = Math.round(extensaoMetros / 20);
 
+  const fotosOrdenadas = sortFotosByEstaca(dadosCalculados.fotos);
+
+  // Calcula a matriz de patologias por estaca para o trecho
+  const tabelaEstacas = gerarTabelaEstacas(dadosCalculados.nCalculado, [
+    {
+      trechoNome: dadosCalculados.trecho.nome,
+      kmInicial: dadosCalculados.trecho.kmInicial,
+      kmFinal: dadosCalculados.trecho.kmFinal,
+      fotos: fotosOrdenadas,
+    },
+  ]);
+
   return {
     titulo: "Relatório de IGG do Trecho",
     viaNome: dadosCalculados.trecho.via.name,
@@ -162,6 +183,7 @@ export async function getRelatorioIggTrechoPdfData(trechoId: string, vistoriaId:
     iggTotal: dadosCalculados.iggTotal,
     tabelaCalculo: dadosCalculados.tabelaCalculo,
     tabelaPatologias: dadosCalculados.tabelaPatologias,
-    fotos: sortFotosByEstaca(dadosCalculados.fotos)
+    fotos: fotosOrdenadas,
+    tabelaEstacas,
   };
 }
